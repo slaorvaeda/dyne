@@ -23,14 +23,16 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className="m-0 min-h-screen flex flex-row w-full bg-[var(--background)] text-[var(--foreground)]">
+      <body className="m-0 min-h-screen w-full overflow-x-hidden bg-[var(--background)] text-[var(--foreground)]">
         <Providers>
-          <Sidebar />
-          <div className="flex-1 flex flex-col min-w-0 overflow-auto w-full">
-            <Navbar />
-            <main className="flex-1 w-full p-4 md:p-6 box-border bg-gray-50/50 dark:bg-gray-900/50">{children}</main>
-            <Footer />
-            <GlobalSnackbar />
+          <div className="flex flex-row w-full min-h-screen flex-1">
+            <Sidebar />
+            <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
+              <Navbar />
+              <main className="flex-1 w-full p-4 md:p-4 box-border bg-gray-50/50 dark:bg-gray-200/40 rounded-lg md:m-2 ">{children}</main>
+              <Footer />
+              <GlobalSnackbar />
+            </div>
           </div>
         </Providers>
       </body>

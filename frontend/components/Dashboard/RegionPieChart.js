@@ -3,7 +3,8 @@
 import { Box } from "@mui/material";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
-const COLORS = ["#1976d2", "#2e7d32", "#ed6c02", "#9c27b0", "#0288d1", "#c62828"];
+// Different shades of blue (light → dark)
+const BLUE_SHADES = ["#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8", "#1e40af", "#1e3a8a"];
 
 export default function RegionPieChart({ data = [] }) {
   const chartData = (Array.isArray(data) ? data : []).map((d) => ({
@@ -36,7 +37,7 @@ export default function RegionPieChart({ data = [] }) {
           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
         >
           {chartData.map((_, i) => (
-            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+            <Cell key={i} fill={BLUE_SHADES[i % BLUE_SHADES.length]} />
           ))}
         </Pie>
         <Tooltip formatter={(value) => [`₹${Number(value).toLocaleString()}`, "Revenue"]} />

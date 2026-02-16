@@ -101,7 +101,7 @@ export default function AnalyticsSalesByCountriesCard({ data = defaultData }) {
 
         <Box sx={{ width: "100%", height: 350 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barCategoryGap="45%">
+            <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barCategoryGap="20%" barGap={8}>
               <CartesianGrid strokeDasharray="4 4" vertical={false} stroke={gridStroke} />
               <XAxis
                 dataKey="month"
@@ -122,9 +122,9 @@ export default function AnalyticsSalesByCountriesCard({ data = defaultData }) {
                   return [`$${Number(value).toLocaleString()}k`, labels[name] || name];
                 }}
               />
-              <Bar dataKey="grossYield" stackId="a" fill={STACK_COLORS[0]} radius={[0, 0, 0, 0]} name="Gross Yield" />
-              <Bar dataKey="netYield" stackId="a" fill={STACK_COLORS[1]} radius={[0, 0, 0, 0]} name="Net Yield" />
-              <Bar dataKey="potentialEquity" stackId="a" fill={STACK_COLORS[2]} radius={[10, 10, 0, 0]} name="Potential Equity" />
+              <Bar dataKey="grossYield" fill={STACK_COLORS[0]} radius={[4, 4, 0, 0]} name="Gross Yield" />
+              <Bar dataKey="netYield" fill={STACK_COLORS[1]} radius={[4, 4, 0, 0]} name="Net Yield" />
+              <Bar dataKey="potentialEquity" fill={STACK_COLORS[2]} radius={[4, 4, 0, 0]} name="Potential Equity" />
             </BarChart>
           </ResponsiveContainer>
         </Box>

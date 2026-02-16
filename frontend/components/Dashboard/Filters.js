@@ -16,23 +16,34 @@ export default function Filters({
   onCategoryChange,
   onRegionChange,
 }) {
+  const filterControlSx = {
+    minWidth: 180,
+    width: 180,
+    "& .MuiOutlinedInput-root": {
+      borderRadius: "10px",
+      bgcolor: "background.paper",
+      "& .MuiSelect-select": { py: 1.25 },
+    },
+  };
+
   return (
-    <Box className="flex flex-wrap gap-4 items-center mb-4">
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center", mb: 4 }}>
       <DatePicker
         label="Start Date"
         value={startDate ? dayjs(startDate) : null}
         onChange={(d) => onStartDateChange(d ? d.format("YYYY-MM-DD") : null)}
-        slotProps={{ textField: { size: "small", className: "min-w-[160px]" } }}
+        slotProps={{ textField: { size: "small", sx: { minWidth: 160, width: 160 } } }}
       />
       <DatePicker
         label="End Date"
         value={endDate ? dayjs(endDate) : null}
         onChange={(d) => onEndDateChange(d ? d.format("YYYY-MM-DD") : null)}
-        slotProps={{ textField: { size: "small", className: "min-w-[160px]" } }}
+        slotProps={{ textField: { size: "small", sx: { minWidth: 160, width: 160 } } }}
       />
-      <FormControl size="small" className="min-w-[180px]">
-        <InputLabel>Category</InputLabel>
+      <FormControl size="small" sx={filterControlSx}>
+        <InputLabel id="filter-category-label">Category</InputLabel>
         <Select
+          labelId="filter-category-label"
           value={category || ""}
           label="Category"
           onChange={(e) => onCategoryChange(e.target.value || null)}
@@ -45,9 +56,10 @@ export default function Filters({
           ))}
         </Select>
       </FormControl>
-      <FormControl size="small" className="min-w-[180px]">
-        <InputLabel>Region</InputLabel>
+      <FormControl size="small" sx={filterControlSx}>
+        <InputLabel id="filter-region-label">Region</InputLabel>
         <Select
+          labelId="filter-region-label"
           value={region || ""}
           label="Region"
           onChange={(e) => onRegionChange(e.target.value || null)}

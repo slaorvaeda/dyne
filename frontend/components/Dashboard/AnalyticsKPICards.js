@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, Typography, Box, useTheme } from "@mui/material";
 import {
   AreaChart,
@@ -42,12 +43,17 @@ const cardSx = (theme) => ({
   "&:hover": { boxShadow: 2 },
 });
 
+const SALES_GROWTH_GRAD_ID = "salesGrowthAreaGrad";
+
 export function SalesGrowthCard({ value = "+50%", subtitle = "sales boost, driving growth.", data = [] }) {
   const theme = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const raw = [30, 45, 35, 55, 45, 65, 50, 70, 60, 80];
   const chartData = data.length
-    ? data.map((d, i) => ({ x: i, v: typeof d === "object" && d?.v != null ? d.v : raw[i] }))
+    ? data.map((d, i) => ({ x: i, v: typeof d === "object" && d?.v != null ? d.v : raw[i % raw.length] }))
     : raw.map((v, i) => ({ x: i, v }));
+  const safeData = Array.isArray(chartData) && chartData.length > 0 ? chartData : raw.map((v, i) => ({ x: i, v }));
   return (
     <Card sx={cardSx(theme)}>
       <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", "&:last-child": { pb: 3 } }}>
@@ -58,18 +64,20 @@ export function SalesGrowthCard({ value = "+50%", subtitle = "sales boost, drivi
         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, display: "block", mb: 2 }}>
           {subtitle}
         </Typography>
-        <Box sx={{ flex: 1, minHeight: 100, width: "100%", ml: -1 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={PRIMARY} stopOpacity={0.4} />
-                  <stop offset="100%" stopColor={PRIMARY} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <Area type="monotone" dataKey="v" stroke={PRIMARY} strokeWidth={2} fill="url(#salesGrad)" />
-            </AreaChart>
-          </ResponsiveContainer>
+        <Box sx={{ width: "100%", height: 120, flexShrink: 0, ml: -1, minHeight: 120 }}>
+          {mounted && (
+            <ResponsiveContainer width="100%" height={120}>
+              <AreaChart data={safeData} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+                <defs>
+                  <linearGradient id={SALES_GROWTH_GRAD_ID} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={PRIMARY} stopOpacity={0.4} />
+                    <stop offset="100%" stopColor={PRIMARY} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="v" stroke={PRIMARY} strokeWidth={2} fill={`url(#${SALES_GROWTH_GRAD_ID})`} />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </Box>
       </CardContent>
     </Card>

@@ -76,7 +76,11 @@ export default function Sidebar() {
 
   return (
     <Box
+      component="aside"
       sx={{
+        position: "sticky",
+        top: 0,
+        alignSelf: "flex-start",
         width: sidebarWidth,
         minWidth: sidebarWidth,
         height: "100vh",
@@ -97,10 +101,22 @@ export default function Sidebar() {
           alignItems: "center",
           borderBottom: "1px solid",
           borderColor: "divider",
-          ...(showFull ? { flexDirection: "row", justifyContent: "space-between", p: 2, gap: 0 } : { flexDirection: "column", justifyContent: "center", p: 1.5, gap: 2 }),
+          minHeight: 64,
+          ...(showFull
+            ? { flexDirection: "row", justifyContent: "space-between", p: 2, gap: 1 }
+            : { flexDirection: "column", justifyContent: "center", p: 1.5, gap: 1 }),
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, ...(showFull ? { justifyContent: "flex-start", width: "auto" } : { justifyContent: "center", width: "100%" }) }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            minWidth: 0,
+            flex: showFull ? 1 : "none",
+            ...(showFull ? { justifyContent: "flex-start" } : { justifyContent: "center", width: "100%" }),
+          }}
+        >
           <Box
             sx={{
               width: 36,
@@ -109,7 +125,7 @@ export default function Sidebar() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "white",
+              color: "primary.contrastText",
               flexShrink: 0,
               bgcolor: "primary.main",
               background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
@@ -121,7 +137,13 @@ export default function Sidebar() {
             variant="h6"
             fontWeight={700}
             color="text.primary"
-            sx={{ overflow: "hidden", whiteSpace: "nowrap", letterSpacing: "-0.02em", display: showFull ? "block" : "none" }}
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              letterSpacing: "-0.02em",
+              display: showFull ? "block" : "none",
+            }}
           >
             ANTICS
           </Typography>
@@ -134,13 +156,14 @@ export default function Sidebar() {
               width: 32,
               height: 32,
               borderRadius: 1,
-              border: 0,
+              border: "none",
               bgcolor: "action.hover",
               color: "text.secondary",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
+              flexShrink: 0,
               "&:hover": { bgcolor: "action.selected" },
             }}
           >
@@ -152,7 +175,12 @@ export default function Sidebar() {
             size="small"
             onClick={handleToggle}
             aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-            sx={{ bgcolor: "action.hover", "&:hover": { bgcolor: "action.selected" } }}
+            sx={{
+              flexShrink: 0,
+              bgcolor: "action.hover",
+              color: "text.primary",
+              "&:hover": { bgcolor: "action.selected" },
+            }}
           >
             {expanded ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
           </IconButton>
@@ -172,14 +200,19 @@ export default function Sidebar() {
                 sx={{
                   borderRadius: 2,
                   minHeight: 44,
+                  color: "text.secondary",
                   ...(showFull ? { py: 1.25, px: 1.5, justifyContent: "flex-start" } : { py: 1.25, px: 1, justifyContent: "center" }),
-                  ...(active && {
-                    borderRight: "4px solid",
-                    borderColor: "primary.main",
-                  }),
+                  "&:hover": {
+                    bgcolor: "action.hover",
+                    color: "text.primary",
+                  },
+                  "&.Mui-selected": {
+                    color: "primary.main",
+                    "& .MuiListItemIcon-root": { color: "primary.main" },
+                  },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: showFull ? 40 : 0, justifyContent: "center", mr: showFull ? 1 : 0 }}>
+                <ListItemIcon sx={{ minWidth: showFull ? 40 : 0, justifyContent: "center", mr: showFull ? 1 : 0, color: "inherit" }}>
                   <Icon sx={{ fontSize: 22 }} />
                 </ListItemIcon>
                 <ListItemText
@@ -248,7 +281,7 @@ export default function Sidebar() {
               height: 40,
               borderRadius: "50%",
               bgcolor: "primary.main",
-              color: "white",
+              color: "primary.contrastText",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

@@ -1,22 +1,26 @@
 "use client";
 
+import { useRef } from "react";
 import { Box, Typography, Button } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import PostAddIcon from "@mui/icons-material/PostAdd";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import { useDispatch, useSelector } from "react-redux";
+import { uploadSales } from "@/store/slices/salesSlice";
 
-export default function AnalyticsPageHeader({
-  title = "Analytics",
-  startDate,
-  endDate,
-  onStartDateChange,
-  onEndDateChange,
-}) {
-  const rangeLabel =
-    startDate && endDate
-      ? `${dayjs(startDate).format("DD")}-${dayjs(endDate).format("DD")} ${dayjs(endDate).format("MMMM")}`
-      : "01-24 September";
+export default function AnalyticsPageHeader({ title = "Analytics" }) {
+  const dispatch = useDispatch();
+  const uploadLoading = useSelector((state) => state.sales.loading.upload);
+  const fileInputRef = useRef(null);
+
+  const handleUploadClick = () => fileInputRef.current?.click();
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const valid = /\.(csv|xlsx|xls)$/i.test(file.name);
+    if (!valid) return;
+    dispatch(uploadSales(file));
+    e.target.value = "";
+  };
 
   return (
     <Box
@@ -25,34 +29,39 @@ export default function AnalyticsPageHeader({
         flexDirection: { xs: "column", md: "row" },
         justifyContent: "space-between",
         alignItems: { xs: "flex-start", md: "center" },
-        mb: 6,
+        mb: 2,
         gap: 2,
       }}
     >
       <Typography variant="h4" fontWeight={700} color="text.primary" sx={{ fontSize: { xs: "1.75rem", md: "2rem" } }}>
         {title}
       </Typography>
-      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-        <DatePicker
-          value={startDate ? dayjs(startDate) : dayjs().subtract(1, "month")}
-          onChange={(d) => onStartDateChange(d ? d.format("YYYY-MM-DD") : null)}
-          slotProps={{
-            textField: {
-              size: "small",
-              sx: {
-                minWidth: 200,
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: "9999px",
-                  bgcolor: "background.paper",
-                  color: "text.primary",
-                  "& .MuiInputBase-input": { color: "text.primary" },
-                  "& .MuiInputLabel-root": { color: "text.secondary" },
-                },
-              },
-            },
-          }}
-          slots={{ openPickerIcon: CalendarMonthIcon }}
+      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          onChange={handleFileChange}
+          style={{ display: "none" }}
         />
+        <Button
+          variant="outlined"
+          startIcon={<CloudUploadIcon />}
+          onClick={handleUploadClick}
+          disabled={uploadLoading}
+          sx={{
+            borderRadius: "9999px",
+            fontWeight: 600,
+            textTransform: "none",
+            px: 2.5,
+            py: 1.25,
+            borderColor: "divider",
+            color: "text.primary",
+            "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" },
+          }}
+        >
+          {uploadLoading ? "Uploading…" : "Upload CSV/Excel"}
+        </Button>
         <Button
           variant="contained"
           startIcon={<PostAddIcon />}
