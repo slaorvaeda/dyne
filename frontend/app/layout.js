@@ -1,6 +1,8 @@
 import "./globals.css";
 import Providers from "@/components/Providers";
-import Sidebar from "@/components/Sidebar";
+import { MobileSidebarProvider } from "@/context/MobileSidebarContext";
+import SidebarWrapper from "@/components/SidebarWrapper";
+import MobileSidebarDrawer from "@/components/MobileSidebarDrawer";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GlobalSnackbar from "@/components/Shared/GlobalSnackbar";
@@ -25,15 +27,18 @@ export default function RootLayout({ children }) {
       </head>
       <body className="m-0 min-h-screen w-full overflow-x-hidden bg-[var(--background)] text-[var(--foreground)]">
         <Providers>
-          <div className="flex flex-row w-full min-h-screen flex-1">
-            <Sidebar />
-            <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
+          <MobileSidebarProvider>
+            <div className="flex flex-row w-full min-h-screen flex-1">
+              <SidebarWrapper />
+              <MobileSidebarDrawer />
+              <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
               <Navbar />
               <main className="flex-1 w-full p-4 md:p-4 box-border bg-gray-50/50 dark:bg-gray-200/40 rounded-lg md:m-2 ">{children}</main>
               <Footer />
               <GlobalSnackbar />
+              </div>
             </div>
-          </div>
+          </MobileSidebarProvider>
         </Providers>
       </body>
     </html>

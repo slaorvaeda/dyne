@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import CloseIcon from "@mui/icons-material/Close";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
@@ -42,7 +43,7 @@ const navItems = [
   { label: "Settings", href: "/settings", icon: SettingsOutlinedIcon },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ inDrawer = false, onClose }) {
   const pathname = usePathname();
   const isDesktop = useMediaQuery("(min-width:960px)");
   const [expanded, setExpanded] = useState(true);
@@ -70,28 +71,30 @@ export default function Sidebar() {
     });
   };
 
-  const showFull = mounted ? (isDesktop && expanded) : true;
-  const sidebarWidth = mounted ? (isDesktop ? (expanded ? 280 : 72) : 72) : 280;
+  const showFull = inDrawer ? true : (mounted ? (isDesktop && expanded) : true);
+  const sidebarWidth = inDrawer ? 280 : (mounted ? (isDesktop ? (expanded ? 280 : 72) : 72) : 280);
   const theme = useTheme();
 
   return (
     <Box
       component="aside"
       sx={{
-        position: "sticky",
-        top: 0,
-        alignSelf: "flex-start",
-        width: sidebarWidth,
-        minWidth: sidebarWidth,
-        height: "100vh",
-        flexShrink: 0,
+        ...(inDrawer
+          ? { width: "100%", minWidth: "100%", height: "100%", flexShrink: 0 }
+          : {
+              position: "sticky",
+              top: 0,
+              alignSelf: "flex-start",
+              height: "100vh",
+              transition: "width 300ms ease-in-out",
+            }),
+        width: inDrawer ? "100%" : sidebarWidth,
+        minWidth: inDrawer ? "100%" : sidebarWidth,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         bgcolor: "background.paper",
-        borderRight: "1px solid",
-        borderColor: "divider",
-        transition: "width 300ms ease-in-out",
+        ...(!inDrawer && { borderRight: "1px solid", borderColor: "divider" }),
       }}
     >
       {/* Brand + Toggle */}
@@ -170,11 +173,11 @@ export default function Sidebar() {
             <StackedBarChartIcon sx={{ fontSize: 18 }} />
           </Box>
         )}
-        {isDesktop && (
+        {inDrawer && onClose ? (
           <IconButton
             size="small"
-            onClick={handleToggle}
-            aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+            onClick={onClose}
+            aria-label="Close menu"
             sx={{
               flexShrink: 0,
               bgcolor: "action.hover",
@@ -182,8 +185,24 @@ export default function Sidebar() {
               "&:hover": { bgcolor: "action.selected" },
             }}
           >
-            {expanded ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+            <CloseIcon fontSize="small" />
           </IconButton>
+        ) : (
+          isDesktop && (
+            <IconButton
+              size="small"
+              onClick={handleToggle}
+              aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+              sx={{
+                flexShrink: 0,
+                bgcolor: "action.hover",
+                color: "text.primary",
+                "&:hover": { bgcolor: "action.selected" },
+              }}
+            >
+              {expanded ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+            </IconButton>
+          )
         )}
       </Box>
 
@@ -197,6 +216,7 @@ export default function Sidebar() {
                 href={href}
                 title={label}
                 selected={active}
+                onClick={inDrawer && onClose ? onClose : undefined}
                 sx={{
                   borderRadius: 2,
                   minHeight: 44,
@@ -265,6 +285,7 @@ export default function Sidebar() {
         <Box
           component={Link}
           href="/profile"
+          onClick={inDrawer && onClose ? onClose : undefined}
           sx={{
             display: "flex",
             alignItems: "center",

@@ -11,13 +11,16 @@ import {
   Badge,
   Avatar,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import { useThemeMode } from "@/context/ThemeModeContext";
+import { useMobileSidebar } from "@/context/MobileSidebarContext";
 
 const routeTitles = {
   "/": "Dashboard",
@@ -42,6 +45,8 @@ function getPageTitle(pathname) {
 export default function Navbar() {
   const pathname = usePathname();
   const { mode, toggleMode } = useThemeMode();
+  const { toggleSidebar } = useMobileSidebar();
+  const isMobile = useMediaQuery("(max-width:959px)");
   const isDark = mode === "dark";
   const pageTitle = getPageTitle(pathname || "/");
 
@@ -61,6 +66,11 @@ export default function Navbar() {
         }}
       >
         <Toolbar sx={{ minHeight: { xs: 52, sm: 56 }, gap: 2, px: { xs: 2, sm: 3 }, flexWrap: "wrap" }}>
+          {isMobile && (
+            <IconButton onClick={toggleSidebar} aria-label="Open menu" sx={{ color: "text.primary", mr: 1 }}>
+              <MenuIcon sx={{ fontSize: 24 }} />
+            </IconButton>
+          )}
           <Typography variant="h6" fontWeight={700} sx={{ color: "text.primary", fontSize: { xs: "1.125rem", sm: "1.25rem" } }}>
             {pageTitle}
           </Typography>
