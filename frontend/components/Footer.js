@@ -128,7 +128,7 @@ export default function Footer() {
               Product
             </Typography>
             {productLinks.map(({ label, href }) => (
-              <Typography key={href} component={Link} href={href} variant="body2" sx={{ display: "block", mb: 1, color: "text.secondary", textDecoration: "none", "&:hover": { color: "primary.main" } }}>
+              <Typography key={label} component={Link} href={href} variant="body2" sx={{ display: "block", mb: 1, color: "text.secondary", textDecoration: "none", "&:hover": { color: "primary.main" } }}>
                 {label}
               </Typography>
             ))}
@@ -138,7 +138,7 @@ export default function Footer() {
               Company
             </Typography>
             {companyLinks.map(({ label, href }) => (
-              <Typography key={href} component={Link} href={href} variant="body2" sx={{ display: "block", mb: 1, color: "text.secondary", textDecoration: "none", "&:hover": { color: "primary.main" } }}>
+              <Typography key={label} component={Link} href={href} variant="body2" sx={{ display: "block", mb: 1, color: "text.secondary", textDecoration: "none", "&:hover": { color: "primary.main" } }}>
                 {label}
               </Typography>
             ))}
@@ -148,7 +148,7 @@ export default function Footer() {
               Legal
             </Typography>
             {legalLinks.map(({ label, href }) => (
-              <Typography key={href} component={Link} href={href} variant="body2" sx={{ display: "block", mb: 1, color: "text.secondary", textDecoration: "none", "&:hover": { color: "primary.main" } }}>
+              <Typography key={label} component={Link} href={href} variant="body2" sx={{ display: "block", mb: 1, color: "text.secondary", textDecoration: "none", "&:hover": { color: "primary.main" } }}>
                 {label}
               </Typography>
             ))}
