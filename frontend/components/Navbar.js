@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   AppBar,
   Toolbar,
@@ -9,8 +10,7 @@ import {
   InputBase,
   Badge,
   Avatar,
-  alpha,
-  useTheme,
+  Typography,
 } from "@mui/material";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
@@ -19,72 +19,89 @@ import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import { useThemeMode } from "@/context/ThemeModeContext";
 
-const iconSx = { fontSize: 20 };
+const routeTitles = {
+  "/": "Dashboard",
+  "/transactions": "Transactions",
+  "/customers": "Customers",
+  "/products": "Products",
+  "/notifications": "Notifications",
+  "/help": "Help Center",
+  "/settings": "Settings",
+  "/profile": "Profile",
+};
+
+function getPageTitle(pathname) {
+  if (routeTitles[pathname]) return routeTitles[pathname];
+  if (pathname.startsWith("/")) {
+    const segment = pathname.slice(1).split("/")[0];
+    return segment ? segment.charAt(0).toUpperCase() + segment.slice(1) : "Dashboard";
+  }
+  return "Dashboard";
+}
 
 export default function Navbar() {
-  const theme = useTheme();
+  const pathname = usePathname();
   const { mode, toggleMode } = useThemeMode();
   const isDark = mode === "dark";
+  const pageTitle = getPageTitle(pathname || "/");
 
   return (
-    <Box sx={{ px: { xs: 1, sm: 2 }, pt: { xs: 1, sm: 1.5 }, pb: 0.5 }}>
+    <Box sx={{ px: { xs: 2, sm: 3 }, pt: { xs: 2, sm: 2.5 }, pb: 1 }}>
       <AppBar
         position="static"
         elevation={0}
         sx={{
-          backgroundColor: "background.paper",
+          bgcolor: "background.paper",
           color: "text.primary",
+          borderRadius: { xs: 2, sm: 3 },
+          overflow: "hidden",
           border: "1px solid",
           borderColor: "divider",
-          borderRadius: { xs: 2, sm: 3, md: 4 },
-          overflow: "hidden",
-          boxShadow: isDark ? "0 1px 3px rgba(0,0,0,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
+          boxShadow: (t) => (t.palette.mode === "dark" ? "0 1px 3px rgba(0,0,0,0.3)" : "0 1px 3px rgba(0,0,0,0.08)"),
         }}
       >
-        <Toolbar sx={{ minHeight: { xs: 52, sm: 56 }, gap: 0.5, px: { xs: 1, sm: 2 } }}>
-          <Box sx={{ flexGrow: 1, minWidth: 0 }} />
+        <Toolbar sx={{ minHeight: { xs: 52, sm: 56 }, gap: 2, px: { xs: 2, sm: 3 }, flexWrap: "wrap" }}>
+          <Typography variant="h6" fontWeight={700} sx={{ color: "text.primary", fontSize: { xs: "1.125rem", sm: "1.25rem" } }}>
+            {pageTitle}
+          </Typography>
+          <Box sx={{ flex: 1, minWidth: 0 }} />
 
-          {/* Search, Notifications, Settings, Theme, Avatar */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.25, sm: 0.5 } }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 1 } }}>
             <Box
               sx={{
                 display: { xs: "none", sm: "flex" },
                 alignItems: "center",
-                bgcolor: (t) => alpha(t.palette.action.hover, 0.04),
                 borderRadius: "9999px",
+                bgcolor: "action.hover",
                 border: "1px solid",
                 borderColor: "divider",
-                px: 1.5,
-                py: 0.75,
+                pl: 2,
+                pr: 1.5,
+                py: 1,
                 minWidth: 180,
               }}
             >
-              <SearchOutlinedIcon sx={{ color: "text.secondary", mr: 1, ...iconSx }} />
+              <SearchOutlinedIcon sx={{ color: "text.secondary", mr: 1, fontSize: 20 }} />
               <InputBase
                 placeholder="Search"
                 size="small"
-                sx={{ fontSize: "0.875rem", "& input": { py: 0.5 } }}
+                sx={{ color: "text.primary", fontSize: "0.875rem", flex: 1 }}
                 inputProps={{ "aria-label": "search" }}
               />
             </Box>
-            <IconButton color="inherit" size="small" aria-label="notifications">
+            <IconButton size="small" sx={{ color: "text.primary" }} aria-label="notifications">
               <Badge badgeContent={3} color="error">
-                <NotificationsOutlinedIcon sx={iconSx} />
+                <NotificationsOutlinedIcon sx={{ fontSize: 20 }} />
               </Badge>
             </IconButton>
-            <IconButton color="inherit" size="small" aria-label="settings" sx={{ display: { xs: "none", sm: "inline-flex" } }}>
-              <SettingsOutlinedIcon sx={iconSx} />
+            <IconButton size="small" sx={{ color: "text.primary", display: { xs: "none", sm: "inline-flex" } }} aria-label="settings">
+              <SettingsOutlinedIcon sx={{ fontSize: 20 }} />
             </IconButton>
-            <IconButton
-              color="inherit"
-              size="small"
-              onClick={toggleMode}
-              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {isDark ? <LightModeOutlinedIcon sx={iconSx} /> : <DarkModeOutlinedIcon sx={iconSx} />}
+            <IconButton size="small" onClick={toggleMode} aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"} sx={{ color: "text.primary" }}>
+              {isDark ? <LightModeOutlinedIcon sx={{ fontSize: 20 }} /> : <DarkModeOutlinedIcon sx={{ fontSize: 20 }} />}
             </IconButton>
             <IconButton component={Link} href="/profile" sx={{ p: 0.5 }} aria-label="profile">
-              <Avatar sx={{ width: { xs: 32, sm: 36 }, height: { xs: 32, sm: 36 }, bgcolor: "primary.main" }}>
+              <Avatar sx={{ width: 36, height: 36, bgcolor: "primary.main", color: "primary.contrastText", fontSize: "0.875rem" }}>
                 U
               </Avatar>
             </IconButton>

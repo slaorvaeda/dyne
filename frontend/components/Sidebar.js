@@ -13,9 +13,8 @@ import {
   Typography,
   Button,
   IconButton,
-  alpha,
-  useTheme,
   useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -45,8 +44,7 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
+  const isDesktop = useMediaQuery("(min-width:960px)");
   const [expanded, setExpanded] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -72,12 +70,9 @@ export default function Sidebar() {
     });
   };
 
-  const isDark = theme.palette.mode === "dark";
-  const accent = theme.palette.primary.main;
-  const accentLight = theme.palette.primary.light || theme.palette.primary.main;
-  // Use stable values until mounted to avoid hydration mismatch (server vs client)
   const showFull = mounted ? (isDesktop && expanded) : true;
   const sidebarWidth = mounted ? (isDesktop ? (expanded ? 280 : 72) : 72) : 280;
+  const theme = useTheme();
 
   return (
     <Box
@@ -85,41 +80,39 @@ export default function Sidebar() {
         width: sidebarWidth,
         minWidth: sidebarWidth,
         height: "100vh",
+        flexShrink: 0,
+        overflow: "hidden",
         display: "flex",
         flexDirection: "column",
-        flexShrink: 0,
-        backgroundColor: "background.paper",
+        bgcolor: "background.paper",
         borderRight: "1px solid",
         borderColor: "divider",
-        overflow: "hidden",
-        transition: theme.transitions.create("width", { duration: theme.transitions.duration.standard }),
+        transition: "width 300ms ease-in-out",
       }}
     >
       {/* Brand + Toggle */}
       <Box
         sx={{
-          p: showFull ? 2 : 1.5,
           display: "flex",
-          flexDirection: showFull ? "row" : "column",
           alignItems: "center",
-          justifyContent: showFull ? "space-between" : "center",
-          gap: showFull ? 0 : 1,
           borderBottom: "1px solid",
           borderColor: "divider",
+          ...(showFull ? { flexDirection: "row", justifyContent: "space-between", p: 2, gap: 0 } : { flexDirection: "column", justifyContent: "center", p: 1.5, gap: 2 }),
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: showFull ? "flex-start" : "center", width: showFull ? "auto" : "100%" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, ...(showFull ? { justifyContent: "flex-start", width: "auto" } : { justifyContent: "center", width: "100%" }) }}>
           <Box
             sx={{
               width: 36,
               height: 36,
               borderRadius: "10px",
-              background: `linear-gradient(135deg, ${accent}, ${accentLight})`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "white",
               flexShrink: 0,
+              bgcolor: "primary.main",
+              background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
             }}
           >
             <InsightsIcon sx={{ fontSize: 22 }} />
@@ -128,8 +121,7 @@ export default function Sidebar() {
             variant="h6"
             fontWeight={700}
             color="text.primary"
-            letterSpacing="-0.02em"
-            sx={{ display: showFull ? "block" : "none", overflow: "hidden", whiteSpace: "nowrap" }}
+            sx={{ overflow: "hidden", whiteSpace: "nowrap", letterSpacing: "-0.02em", display: showFull ? "block" : "none" }}
           >
             ANTICS
           </Typography>
@@ -137,17 +129,19 @@ export default function Sidebar() {
         {showFull && (
           <Box
             component="button"
+            type="button"
             sx={{
               width: 32,
               height: 32,
-              border: "none",
               borderRadius: 1,
+              border: 0,
               bgcolor: "action.hover",
               color: "text.secondary",
-              cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              cursor: "pointer",
+              "&:hover": { bgcolor: "action.selected" },
             }}
           >
             <StackedBarChartIcon sx={{ fontSize: 18 }} />
@@ -158,18 +152,14 @@ export default function Sidebar() {
             size="small"
             onClick={handleToggle}
             aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-            sx={{
-              bgcolor: "action.hover",
-              "&:hover": { bgcolor: "action.selected" },
-            }}
+            sx={{ bgcolor: "action.hover", "&:hover": { bgcolor: "action.selected" } }}
           >
             {expanded ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
           </IconButton>
         )}
       </Box>
 
-      {/* Nav */}
-      <List sx={{ px: showFull ? 1.5 : 0.75, py: 2, flex: 1, overflow: "auto" }} disablePadding>
+      <List sx={{ flex: 1, overflow: "auto", py: 2, px: showFull ? 1.5 : 0.75 }} disablePadding>
         {navItems.map(({ label, href, icon: Icon }) => {
           const active = pathname === href || (href === "/" && pathname === "/");
           return (
@@ -178,37 +168,15 @@ export default function Sidebar() {
                 component={Link}
                 href={href}
                 title={label}
+                selected={active}
                 sx={{
                   borderRadius: 2,
-                  py: 1.25,
-                  px: showFull ? 1.5 : 1,
-                  justifyContent: showFull ? "flex-start" : "center",
-                  position: "relative",
                   minHeight: 44,
-                  ...(active
-                    ? {
-                        backgroundColor: alpha(accent, isDark ? 0.25 : 0.12),
-                        "&::after": {
-                          content: '""',
-                          position: "absolute",
-                          right: 0,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          width: 4,
-                          height: "60%",
-                          borderRadius: "4px 0 0 4px",
-                          bgcolor: accent,
-                        },
-                        "& .MuiListItemIcon-root": { color: accent },
-                        "& .MuiListItemText-primary": { color: accent, fontWeight: 600 },
-                      }
-                    : {
-                        color: "text.secondary",
-                        "&:hover": {
-                          bgcolor: "action.hover",
-                          "& .MuiListItemIcon-root": { color: "text.primary" },
-                        },
-                      }),
+                  ...(showFull ? { py: 1.25, px: 1.5, justifyContent: "flex-start" } : { py: 1.25, px: 1, justifyContent: "center" }),
+                  ...(active && {
+                    borderRight: "4px solid",
+                    borderColor: "primary.main",
+                  }),
                 }}
               >
                 <ListItemIcon sx={{ minWidth: showFull ? 40 : 0, justifyContent: "center", mr: showFull ? 1 : 0 }}>
@@ -216,7 +184,7 @@ export default function Sidebar() {
                 </ListItemIcon>
                 <ListItemText
                   primary={label}
-                  primaryTypographyProps={{ fontSize: "0.9375rem" }}
+                  primaryTypographyProps={{ fontSize: "0.9375rem", fontWeight: active ? 600 : 400 }}
                   sx={{ display: showFull ? "block" : "none" }}
                 />
               </ListItemButton>
@@ -225,15 +193,15 @@ export default function Sidebar() {
         })}
       </List>
 
-      {/* Upgrade card */}
-      <Box sx={{ px: showFull ? 2 : 1, pb: 2 }}>
+      <Box sx={{ pb: 2, px: showFull ? 2 : 1 }}>
         <Box
           sx={{
             borderRadius: 2,
-            p: showFull ? 2 : 1,
-            background: `linear-gradient(135deg, ${accent}, ${accentLight})`,
-            color: "white",
+            p: 2,
             textAlign: "center",
+            color: "white",
+            bgcolor: "primary.main",
+            background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
           }}
         >
           <Typography variant="body2" sx={{ fontWeight: 500, mb: 1.5, lineHeight: 1.4, display: showFull ? "block" : "none" }}>
@@ -246,40 +214,32 @@ export default function Sidebar() {
             startIcon={<WorkspacePremiumIcon sx={{ fontSize: 18, mr: showFull ? 0.5 : 0 }} />}
             sx={{
               bgcolor: "rgba(255,255,255,0.95)",
-              color: accent,
+              color: "primary.main",
               fontWeight: 600,
               minWidth: showFull ? "auto" : 0,
               px: showFull ? 2 : 1,
               "&:hover": { bgcolor: "#fff" },
             }}
           >
-            <Box component="span" sx={{ display: showFull ? "inline" : "none" }}>Upgrade Pro</Box>
+            <Box component="span" sx={{ display: showFull ? "inline" : "none" }}>
+              Upgrade Pro
+            </Box>
           </Button>
         </Box>
       </Box>
 
-      {/* User profile */}
-      <Box
-        sx={{
-          p: showFull ? 1.5 : 1,
-          borderTop: "1px solid",
-          borderColor: "divider",
-          bgcolor: alpha(theme.palette.action.hover, 0.3),
-        }}
-      >
+      <Box sx={{ p: 1.5, borderTop: "1px solid", borderColor: "divider", bgcolor: "action.hover" }}>
         <Box
           component={Link}
           href="/profile"
           sx={{
             display: "flex",
             alignItems: "center",
-            justifyContent: showFull ? "flex-start" : "center",
-            gap: 1.5,
-            p: 1,
-            borderRadius: 2,
             textDecoration: "none",
             color: "text.primary",
-            "&:hover": { bgcolor: "action.hover" },
+            p: 1,
+            borderRadius: 2,
+            "&:hover": { bgcolor: "action.selected" },
           }}
         >
           <Box
@@ -303,7 +263,7 @@ export default function Sidebar() {
             <Typography variant="body2" fontWeight={600} noWrap>
               Teja Williams
             </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap>
+            <Typography variant="caption" color="text.secondary" noWrap display="block">
               View profile
             </Typography>
           </Box>

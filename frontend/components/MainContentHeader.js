@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Typography, Button, alpha } from "@mui/material";
+import { Box, Typography, Button } from "@mui/material";
 import InputBase from "@mui/material/InputBase";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -15,51 +15,25 @@ export default function MainContentHeader({
   showDownload = true,
 }) {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: { xs: "column", sm: "row" },
-        flexWrap: "wrap",
-        alignItems: { xs: "stretch", sm: "center" },
-        justifyContent: "space-between",
-        gap: 2,
-        mb: 3,
-      }}
-    >
-      <Typography variant="h5" fontWeight={700} color="text.primary" sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" } }}>
+    <Box className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-between gap-4 mb-6">
+      <Typography variant="h5" fontWeight={700} color="text.primary" className="text-xl sm:text-2xl">
         {title}
       </Typography>
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: "stretch",
-          gap: 1.5,
-          flexWrap: "wrap",
-          width: { xs: "100%", sm: "auto" },
-        }}
-      >
+      <Box className="flex flex-col sm:flex-row items-stretch gap-3 flex-wrap w-full sm:w-auto">
         {showSearch && (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              bgcolor: (t) => alpha(t.palette.action.hover, 0.04),
-              borderRadius: "9999px",
-              border: "1px solid",
-              borderColor: "divider",
-              px: 1.5,
-              py: 0.75,
-              minWidth: { xs: "100%", sm: 200 },
-            }}
-          >
-            <SearchOutlinedIcon sx={{ color: "text.secondary", mr: 1, fontSize: 20 }} />
-            <InputBase placeholder="Search" size="small" sx={{ fontSize: "0.875rem", flex: 1 }} inputProps={{ "aria-label": "search" }} />
+          <Box className="flex items-center rounded-full border border-gray-200 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-800/50 pl-3 pr-2 py-1.5 min-w-full sm:min-w-[200px]">
+            <SearchOutlinedIcon className="text-gray-500 dark:text-gray-400 mr-2 w-5 h-5" />
+            <InputBase
+              placeholder="Search"
+              size="small"
+              className="text-sm flex-1"
+              inputProps={{ "aria-label": "search" }}
+            />
           </Box>
         )}
         {showPeriod && (
-          <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 120 } }}>
-            <Select value="week" displayEmpty sx={{ borderRadius: 2 }}>
+          <FormControl size="small" className="min-w-full sm:min-w-[120px]">
+            <Select value="week" displayEmpty className="rounded-xl">
               <MenuItem value="week">Last Week</MenuItem>
               <MenuItem value="month">Last Month</MenuItem>
               <MenuItem value="year">Last Year</MenuItem>
@@ -70,8 +44,7 @@ export default function MainContentHeader({
           <Button
             variant="contained"
             startIcon={<DownloadIcon />}
-            fullWidth={false}
-            sx={{ borderRadius: 2, fontWeight: 600, textTransform: "none", width: { xs: "100%", sm: "auto" } }}
+            className="rounded-xl font-semibold normal-case w-full sm:w-auto"
           >
             Download CSV
           </Button>

@@ -39,7 +39,7 @@ export default function GlobalSnackbar() {
         onClose={handleClose}
         severity={isSuccess ? "success" : "error"}
         variant="filled"
-        sx={{ width: "100%" }}
+        className="w-full"
       >
         {message}
       </Alert>
