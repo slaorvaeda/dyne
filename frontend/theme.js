@@ -1,6 +1,6 @@
 import { createTheme } from "@mui/material/styles";
 
-// Aligned with Sidebar: blue-500/600 accent, gray-50 (light), gray-800/900 (dark)
+// blue accent, gray neutrals
 const lightPalette = {
   primary: { main: "#3b82f6", light: "#60a5fa", dark: "#2563eb" },
   background: { default: "#f8fafc", paper: "#ffffff" },

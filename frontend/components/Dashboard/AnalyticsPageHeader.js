@@ -14,7 +14,7 @@ export default function AnalyticsPageHeader({ title = "Analytics" }) {
   const [replaceExisting, setReplaceExisting] = useState(true);
 
   const handleUploadClick = () => fileInputRef.current?.click();
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB, must match backend
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;

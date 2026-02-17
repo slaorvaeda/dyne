@@ -8,7 +8,7 @@ const ThemeModeContext = createContext({ mode: "light", toggleMode: () => {} });
 export function ThemeModeProvider({ children, initialMode = "light" }) {
   const [mode, setMode] = useState(initialMode);
 
-  // Hydrate from localStorage so toggle state persists across reloads
+  // persist theme in localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);

@@ -68,7 +68,7 @@ export default function NotFoundView() {
     >
       <style>{keyframes}</style>
 
-      {/* Background glow */}
+      {/* glow */}
       <Box
         sx={{
           position: "absolute",
@@ -84,7 +84,7 @@ export default function NotFoundView() {
         }}
       />
 
-      {/* Animated chart line that "drops" */}
+      {/* chart line */}
       <Box
         sx={{
           position: "absolute",
@@ -121,7 +121,7 @@ export default function NotFoundView() {
         </svg>
       </Box>
 
-      {/* Floating coins (decorative) */}
+      {/* decor */}
       {[0, 1, 2].map((i) => (
         <Box
           key={i}
@@ -140,7 +140,7 @@ export default function NotFoundView() {
         />
       ))}
 
-      {/* Main 404 block */}
+      {/* 404 content */}
       <Box
         sx={{
           position: "relative",
@@ -198,7 +198,7 @@ export default function NotFoundView() {
         Back to Dashboard
       </Button>
 
-      {/* Mini bar chart that "fails" */}
+      {/* bar chart */}
       <Box
         sx={{
           position: "absolute",

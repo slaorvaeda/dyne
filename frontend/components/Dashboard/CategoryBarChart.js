@@ -31,17 +31,8 @@ export default function CategoryBarChart({ data = [], height = 320 }) {
     }))
     .filter((d) => d.revenue > 0);
 
-  if (chartData.length === 0) {
-    return (
-      <ResponsiveContainer width="100%" height={height}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "text.secondary" }}>
-          No category data for selected period
-        </Box>
-      </ResponsiveContainer>
-    );
-  }
-
   const displayData = chartData.map((d) => ({ ...d, name: truncate(d.name) }));
+  const hasData = displayData.length > 0;
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -58,6 +49,7 @@ export default function CategoryBarChart({ data = [], height = 320 }) {
         <YAxis
           tick={{ fontSize: 12, fill: tickFill }}
           tickFormatter={(v) => (v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` : `₹${(v / 1000).toFixed(0)}k`)}
+          domain={hasData ? undefined : [0, 100]}
         />
         <Tooltip
           formatter={(value) => [`₹${Number(value).toLocaleString("en-IN")}`, "Revenue"]}

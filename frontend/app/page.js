@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Box, CircularProgress, Alert, Button } from "@mui/material";
+import { Box, CircularProgress, Alert, Button, ToggleButtonGroup, ToggleButton } from "@mui/material";
 import {
   fetchSummary,
   fetchTrends,
@@ -32,7 +32,7 @@ import dayjs from "dayjs";
 const defaultStart = dayjs().subtract(1, "month").format("YYYY-MM-DD");
 const defaultEnd = dayjs().format("YYYY-MM-DD");
 
-// Mini chart data for KPI cards: use actual revenue scaled for area chart
+// scale revenue for mini KPI charts
 const miniLineData = (trends) => {
   const arr = (trends || []).slice(0, 31);
   if (arr.length === 0) return [{ v: 0 }];
@@ -40,7 +40,7 @@ const miniLineData = (trends) => {
   return arr.map((d) => ({ v: Math.round((Number(d.revenue) || 0) / maxR * 100) }));
 };
 
-// Sales growth: first half vs second half of period (by revenue)
+// growth: second half vs first half of period
 const salesGrowthFromTrends = (trends) => {
   const arr = Array.isArray(trends) ? trends : [];
   if (arr.length < 2) return { pct: "0%", subtitle: arr.length === 0 ? "No trend data" : "Single data point" };
@@ -53,7 +53,7 @@ const salesGrowthFromTrends = (trends) => {
   return { pct: `${sign}${Math.round(change)}%`, subtitle: "vs first half of period" };
 };
 
-// Win rate: % of days in period that had sales (trends = one point per day with revenue)
+// % of days in range that had sales
 const winRateFromTrendsAndRange = (trends, startDate, endDate) => {
   const daysWithSales = Array.isArray(trends) ? trends.length : 0;
   if (!startDate || !endDate) return { pct: "0%", subtitle: "of days in period" };
@@ -69,6 +69,7 @@ export default function DashboardPage() {
   const [endDate, setEndDate] = useState(defaultEnd);
   const [category, setCategory] = useState(null);
   const [region, setRegion] = useState(null);
+  const [trendType, setTrendType] = useState("daily");
 
   const summary = useSelector((state) => state.sales.summary);
   const trends = useSelector((state) => state.sales.trends);
@@ -91,25 +92,26 @@ export default function DashboardPage() {
 
   const loadData = useCallback(() => {
     dispatch(fetchSummary(params));
-    dispatch(fetchTrends({ ...params, type: "daily" }));
+    dispatch(fetchTrends({ ...params, type: trendType }));
     dispatch(fetchProductWise(params));
     dispatch(fetchRegionWise(params));
     dispatch(fetchCategoryWise(params));
-  }, [dispatch, params]);
+  }, [dispatch, params, trendType]);
 
   useEffect(() => {
     dispatch(fetchFilters());
   }, [dispatch]);
 
   const lastUploadInserted = useRef(null);
-  // Refetch categories/regions from DB after successful upload so new options appear
+  // refetch data after upload so charts update
   useEffect(() => {
     const inserted = upload?.recordsInserted;
     if (inserted != null && typeof inserted === "number" && lastUploadInserted.current !== inserted) {
       lastUploadInserted.current = inserted;
       dispatch(fetchFilters());
+      loadData();
     }
-  }, [upload?.recordsInserted, dispatch]);
+  }, [upload?.recordsInserted, dispatch, loadData]);
 
   useEffect(() => {
     loadData();
@@ -122,7 +124,7 @@ export default function DashboardPage() {
   const displayProductWise = useMemo(() => (Array.isArray(productWise) ? productWise : []), [productWise]);
   const displayRegionWise = useMemo(() => (Array.isArray(regionWise) ? regionWise : []), [regionWise]);
   const displayCategoryWise = useMemo(() => (Array.isArray(categoryWise) ? categoryWise : []), [categoryWise]);
-  // Only these categories show in dropdown (excludes Car&Motorbike, Health&PersonalCare, Toys&Games)
+  // allowed filter categories
   const ALLOWED_CATEGORIES = [
     "Computers&Accessories",
     "Electronics",
@@ -229,13 +231,26 @@ export default function DashboardPage() {
         onRegionChange={setRegion}
       />
 
-      {/* Line: Revenue trends | Bar: Product-wise | Pie: Revenue by region */}
+      {/* charts row */}
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 6 }}>
         <Card sx={{ flex: "1 1 340px", minWidth: 0, borderRadius: "2rem", bgcolor: "background.paper" }}>
           <CardContent>
-            <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom>
-              Revenue trends over time
-            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1, mb: 1 }}>
+              <Typography variant="subtitle2" fontWeight={600} color="text.secondary">
+                Revenue trends over time
+              </Typography>
+              <ToggleButtonGroup
+                value={trendType}
+                exclusive
+                onChange={(_, v) => v != null && setTrendType(v)}
+                size="small"
+                sx={{ "& .MuiToggleButton-root": { py: 0.25, px: 1, fontSize: "0.75rem" } }}
+              >
+                <ToggleButton value="daily">Daily</ToggleButton>
+                <ToggleButton value="weekly">Weekly</ToggleButton>
+                <ToggleButton value="monthly">Monthly</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
             <Box sx={{ width: "100%", height: 320 }}>
               <RevenueLineChart data={displayTrends} />
             </Box>
@@ -263,7 +278,7 @@ export default function DashboardPage() {
         </Card>
       </Box>
 
-      {/* KPI row: full-width flex, cards stretch equally */}
+      {/* KPI cards */}
       <Box
         sx={{
           display: "flex",
@@ -295,7 +310,7 @@ export default function DashboardPage() {
         />
       </Box>
 
-      {/* Revenue by category | Sales Overview | Sales by Region — one row */}
+      {/* category, overview, region — one row, equal width */}
       <Box
         sx={{
           display: "flex",
@@ -303,16 +318,30 @@ export default function DashboardPage() {
           flexDirection: { xs: "column", md: "row" },
           gap: 3,
           width: "100%",
-          "& > *": { minWidth: 0, flex: { md: "1 1 280px" }, minHeight: 420 },
+          alignItems: "stretch",
+          "& > *": { minWidth: 0, flex: { md: "1 1 0px" }, minHeight: 420 },
         }}
       >
-        <Card sx={{ borderRadius: "2rem", bgcolor: "background.paper", border: "1px solid", borderColor: "divider", boxShadow: 1 }}>
-          <CardContent>
-            <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom>
-              Revenue by category
-            </Typography>
-            <Box sx={{ width: "100%", height: 320 }}>
-              <CategoryBarChart data={displayCategoryWise} />
+        <Card
+          sx={{
+            bgcolor: "background.paper",
+            border: "1px solid",
+            borderColor: "divider",
+            p: 3,
+            borderRadius: "2rem",
+            boxShadow: 1,
+            height: "100%",
+          }}
+        >
+          <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+              <Box sx={{ width: 6, height: 24, bgcolor: "primary.main", borderRadius: "9999px" }} />
+              <Typography variant="subtitle2" fontWeight={500} color="text.secondary">
+                Revenue by category
+              </Typography>
+            </Box>
+            <Box sx={{ width: "100%", height: 256, minHeight: 256 }}>
+              <CategoryBarChart data={displayCategoryWise} height={256} />
             </Box>
           </CardContent>
         </Card>

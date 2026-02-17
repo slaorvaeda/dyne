@@ -17,6 +17,8 @@ import {
   Paper,
   Alert,
   Button,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import { fetchTrends, fetchFilters, clearError } from "@/store/slices/salesSlice";
 import Filters from "@/components/Dashboard/Filters";
@@ -41,6 +43,7 @@ export default function RevenueTrendsPage() {
   const [endDate, setEndDate] = useState(defaultEnd);
   const [category, setCategory] = useState(null);
   const [region, setRegion] = useState(null);
+  const [trendType, setTrendType] = useState("daily");
 
   const trends = useSelector((state) => state.sales.trends);
   const filters = useSelector((state) => state.sales.filters);
@@ -68,8 +71,8 @@ export default function RevenueTrendsPage() {
   }, [filters]);
 
   const loadData = useCallback(() => {
-    dispatch(fetchTrends({ ...params, type: "daily" }));
-  }, [dispatch, params]);
+    dispatch(fetchTrends({ ...params, type: trendType }));
+  }, [dispatch, params, trendType]);
 
   useEffect(() => {
     dispatch(fetchFilters());
@@ -89,11 +92,26 @@ export default function RevenueTrendsPage() {
 
   return (
     <Box sx={{ width: "100%", color: "text.primary" }}>
-      <Typography variant="h4" fontWeight={700} sx={{ mb: 2, fontSize: { xs: "1.75rem", md: "2rem" } }}>
-        Revenue trends over time
-      </Typography>
+      <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 2, mb: 2 }}>
+        <Typography variant="h4" fontWeight={700} sx={{ fontSize: { xs: "1.75rem", md: "2rem" } }}>
+          Revenue trends over time
+        </Typography>
+        <ToggleButtonGroup
+          value={trendType}
+          exclusive
+          onChange={(_, v) => v != null && setTrendType(v)}
+          size="small"
+        >
+          <ToggleButton value="daily">Daily</ToggleButton>
+          <ToggleButton value="weekly">Weekly</ToggleButton>
+          <ToggleButton value="monthly">Monthly</ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Daily revenue over the selected period. Use filters to narrow by category or region.
+        {trendType === "daily" && "Daily revenue over the selected period."}
+        {trendType === "weekly" && "Weekly revenue over the selected period."}
+        {trendType === "monthly" && "Monthly revenue over the selected period."}
+        {" Use filters to narrow by category or region."}
       </Typography>
 
       {error && (

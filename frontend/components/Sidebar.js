@@ -97,7 +97,7 @@ export default function Sidebar({ inDrawer = false, onClose }) {
         ...(!inDrawer && { borderRight: "1px solid", borderColor: "divider" }),
       }}
     >
-      {/* Brand + Toggle */}
+      {/* header */}
       <Box
         sx={{
           display: "flex",

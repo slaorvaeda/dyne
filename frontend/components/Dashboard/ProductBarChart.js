@@ -12,14 +12,15 @@ import {
 } from "recharts";
 
 const DEFAULT_TOP_PRODUCTS = 15;
-const MAX_LABEL_LEN = 40;
+const MAX_LABEL_LEN = 20; // axis label length; full name in tooltip
 
 function truncate(str, max = MAX_LABEL_LEN) {
   const s = String(str || "").trim();
-  return s.length <= max ? s : s.slice(0, max - 1) + "…";
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1) + "…";
 }
 
-export default function ProductBarChart({ data = [], height = 320, maxProducts = DEFAULT_TOP_PRODUCTS }) {
+export default function ProductBarChart({ data = [], height = 320, maxProducts = DEFAULT_TOP_PRODUCTS, maxLabelLength = MAX_LABEL_LEN }) {
   const theme = useTheme();
   const gridStroke = theme.palette.divider;
   const tickFill = theme.palette.text.secondary;
@@ -33,17 +34,8 @@ export default function ProductBarChart({ data = [], height = 320, maxProducts =
     .filter((d) => d.revenue > 0)
     .slice(0, maxProducts);
 
-  if (chartData.length === 0) {
-    return (
-      <ResponsiveContainer width="100%" height={height}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "text.secondary" }}>
-          No product data for selected period
-        </Box>
-      </ResponsiveContainer>
-    );
-  }
-
-  const displayData = chartData.map((d) => ({ ...d, name: truncate(d.name) }));
+  const displayData = chartData.map((d) => ({ ...d, name: truncate(d.name, maxLabelLength) }));
+  const hasData = displayData.length > 0;
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -51,15 +43,16 @@ export default function ProductBarChart({ data = [], height = 320, maxProducts =
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridStroke} />
         <XAxis
           dataKey="name"
-          tick={{ fontSize: 11, fill: tickFill }}
-          angle={-25}
+          tick={{ fontSize: 10, fill: tickFill }}
+          angle={-35}
           textAnchor="end"
-          height={80}
+          height={72}
           interval={0}
         />
         <YAxis
           tick={{ fontSize: 12, fill: tickFill }}
           tickFormatter={(v) => (v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` : `₹${(v / 1000).toFixed(0)}k`)}
+          domain={hasData ? undefined : [0, 100]}
         />
         <Tooltip
           formatter={(value) => [`₹${Number(value).toLocaleString("en-IN")}`, "Revenue"]}
@@ -76,7 +69,7 @@ export default function ProductBarChart({ data = [], height = 320, maxProducts =
                   borderColor: "divider",
                   bgcolor: "background.paper",
                   boxShadow: 1,
-                  maxWidth: 320,
+                  maxWidth: 380,
                 }}
               >
                 <Typography variant="caption" color="text.secondary" component="div" sx={{ wordBreak: "break-word" }}>

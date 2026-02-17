@@ -7,13 +7,9 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 const COLORS = ["#0f172a", "#60a5fa", "#93c5fd", "#dbeafe", "#1e40af"];
-const ONLINE_COLOR = "#3b82f6"; // blue for "Online" region
+const ONLINE_COLOR = "#3b82f6"; // "Online" region = blue
 
-/**
- * Sales Overview: center = total revenue (from summary), donut = revenue by region.
- * value: formatted total revenue string (e.g. "₹12.5L")
- * data: region-wise array from API, e.g. [{ region, revenue }]
- */
+// total revenue + donut by region
 export default function AnalyticsSalesOverviewCard({ value = "₹0", data = [] }) {
   const chartData = (Array.isArray(data) ? data : []).map((d) => ({
     name: d.region || d.name || "Other",
@@ -29,6 +25,7 @@ export default function AnalyticsSalesOverviewCard({ value = "₹0", data = [] }
   });
 
   const hasChartData = chartData.length > 0;
+  const displayChartData = hasChartData ? chartData : [{ name: "No data", value: 1 }];
 
   return (
     <Card
@@ -57,41 +54,35 @@ export default function AnalyticsSalesOverviewCard({ value = "₹0", data = [] }
         </Box>
 
         <Box sx={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", height: 256, minHeight: 256 }}>
-          {hasChartData ? (
-            <>
-              <Box sx={{ width: "100%", maxWidth: 320, height: 256, minHeight: 256 }}>
-                <ResponsiveContainer width="100%" height={256}>
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={70}
-                      outerRadius={100}
-                      paddingAngle={2}
-                      dataKey="value"
-                      nameKey="name"
-                      stroke="#fff"
-                      strokeWidth={2}
-                    >
-                      {chartData.map((_, i) => (
-                        <Cell key={i} fill={colorByIndex[i]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(val) => [`₹${Number(val).toLocaleString()}`, "Revenue"]} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Box>
-              <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
-                <Typography variant="h4" fontWeight={700} color="text.primary">
-                  {value}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">Total revenue</Typography>
-              </Box>
-            </>
-          ) : (
-            <Typography variant="body2" color="text.secondary">No sales data for selected period</Typography>
-          )}
+          <Box sx={{ width: "100%", maxWidth: 320, height: 256, minHeight: 256 }}>
+            <ResponsiveContainer width="100%" height={256}>
+              <PieChart>
+                <Pie
+                  data={displayChartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={100}
+                  paddingAngle={hasChartData ? 2 : 0}
+                  dataKey="value"
+                  nameKey="name"
+                  stroke="#fff"
+                  strokeWidth={2}
+                >
+                  {displayChartData.map((_, i) => (
+                    <Cell key={i} fill={hasChartData ? colorByIndex[i] : "var(--mui-palette-divider)"} stroke={hasChartData ? "#fff" : "none"} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(val) => [`₹${Number(val).toLocaleString()}`, "Revenue"]} />
+              </PieChart>
+            </ResponsiveContainer>
+          </Box>
+          <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
+            <Typography variant="h4" fontWeight={700} color="text.primary">
+              {value}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">Total revenue</Typography>
+          </Box>
         </Box>
 
         {hasChartData && (

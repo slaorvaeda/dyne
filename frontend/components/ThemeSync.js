@@ -5,10 +5,7 @@ import { useThemeMode } from "@/context/ThemeModeContext";
 
 const STORAGE_KEY = "theme-mode";
 
-/**
- * Syncs theme mode from context to the document so Tailwind's dark: variant works.
- * Adds/removes the `dark` class on <html> when user toggles light/dark mode.
- */
+// sync theme to <html> for Tailwind dark:
 export default function ThemeSync() {
   const { mode } = useThemeMode();
 

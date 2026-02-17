@@ -55,7 +55,7 @@ export default function AnalyticsNavbar() {
           }}
         >
           <Box sx={{ display: "flex", flexDirection: { xs: "column", xl: "row" }, alignItems: "center", gap: 3, flex: 1 }}>
-            {/* Logo */}
+            {/* logo */}
             <Box
               sx={{
                 width: 40,
@@ -71,7 +71,7 @@ export default function AnalyticsNavbar() {
               <AcUnitIcon sx={{ color: "white", fontSize: 22 }} />
             </Box>
 
-            {/* Nav links */}
+            {/* nav */}
             <Box
               sx={{
                 display: "flex",
@@ -105,7 +105,7 @@ export default function AnalyticsNavbar() {
             </Box>
           </Box>
 
-          {/* Right: Search, Bell, Settings, Avatar */}
+          {/* actions */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box
               sx={{

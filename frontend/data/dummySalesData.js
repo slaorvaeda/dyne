@@ -1,8 +1,4 @@
-/**
- * Dummy sales data matching PRD schema & API shapes.
- * Schema: order_date, product_name, category, region, quantity, price, total_amount
- * Use when backend is unavailable to test charts.
- */
+// dummy data for charts when API is down
 
 const categories = ["Electronics", "Clothing", "Home & Garden", "Sports", "Books"];
 const regions = ["North", "South", "East", "West", "Central"];
@@ -19,7 +15,7 @@ const products = [
   "Water Bottle",
 ];
 
-// Last 30 days for trend
+// last 30 days
 const lastNDays = 30;
 const trendDates = Array.from({ length: lastNDays }, (_, i) => {
   const d = new Date();

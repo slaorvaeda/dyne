@@ -1,6 +1,5 @@
 "use client";
 
-import { Box } from "@mui/material";
 import {
   LineChart,
   Line,
@@ -19,22 +18,12 @@ export default function RevenueLineChart({ data = [], height = 320 }) {
     date: d.date,
   }));
 
-  if (chartData.length === 0) {
-    return (
-      <ResponsiveContainer width="100%" height={height}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "text.secondary" }}>
-          No trend data
-        </Box>
-      </ResponsiveContainer>
-    );
-  }
-
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-        <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+        <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} domain={chartData.length ? undefined : [0, 100]} />
         <Tooltip
           formatter={(value) => [`₹${Number(value).toLocaleString()}`, "Revenue"]}
           labelFormatter={(label) => `Date: ${label}`}
