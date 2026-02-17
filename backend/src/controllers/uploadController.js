@@ -7,8 +7,8 @@ const COLUMN_MAP = {
   category: ["category", "categories"],
   region: ["region", "regions"],
   quantity: ["quantity", "qty", "qty_sold"],
-  price: ["price", "unit_price", "unit price"],
-  total_amount: ["total_amount", "totalamount", "total", "total amount", "revenue", "amount"],
+  price: ["price", "unit_price", "unit price", "discounted_price", "actual_price"],
+  total_amount: ["total_amount", "totalamount", "total", "total amount", "revenue", "amount", "discounted_price", "actual_price"],
 };
 
 function normalizeKey(s) {
@@ -94,47 +94,108 @@ function mapRow(raw, colMap) {
   };
 }
 
+function randomDate(start, end) {
+  const t = start.getTime() + Math.random() * (end.getTime() - start.getTime());
+  return new Date(t).toISOString().slice(0, 10);
+}
+
+function mapRowWithSyntheticDate(raw, colMap, dateStart, dateEnd) {
+  const get = (key) => {
+    const c = colMap[key];
+    if (!c) return null;
+    let v = raw[c];
+    if (v === undefined || v === null || v === "") return null;
+    if (typeof v === "object" && v instanceof Date) return v.toISOString().slice(0, 10);
+    return String(v).trim();
+  };
+  const getNum = (key) => {
+    const v = get(key);
+    if (v === null || v === "") return null;
+    const n = parseFloat(String(v).replace(/[^0-9.-]/g, ""));
+    return isNaN(n) ? null : n;
+  };
+  const productName = get("product_name");
+  if (!productName) return null;
+  const price = getNum("price") ?? getNum("total_amount");
+  if (price == null || price <= 0) return null;
+  const amount = Math.round(price * 100) / 100;
+  let category = get("category");
+  if (category && category.includes("|")) category = category.split("|")[0].trim() || null;
+  return {
+    order_date: randomDate(dateStart, dateEnd),
+    product_name: productName.slice(0, 255),
+    category: category ? category.slice(0, 100) : null,
+    region: get("region") || "Online",
+    quantity: 1,
+    price: amount,
+    total_amount: amount,
+  };
+}
+
 async function uploadSales(req, res) {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded" });
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+    const ext = (req.file.originalname || "").toLowerCase().replace(/.*\./, "");
+    if (!["csv", "xlsx", "xls"].includes(ext)) {
+      return res.status(400).json({ error: "Only CSV, XLSX, and XLS files are allowed" });
+    }
+    const rawRows = parseFile(req.file.buffer, ext);
+    if (rawRows.length === 0) {
+      return res.status(400).json({ error: "File is empty or has no data rows" });
+    }
+    const headers = Object.keys(rawRows[0] || {});
+    const colMap = {};
+    for (const [dbCol, aliases] of Object.entries(COLUMN_MAP)) {
+      const found = findColumn(headers, aliases);
+      if (found) colMap[dbCol] = found;
+    }
+
+    const hasRequired = colMap.product_name && (colMap.price || colMap.total_amount);
+    const hasDate = colMap.order_date;
+    const useSyntheticDate = hasRequired && !hasDate;
+
+    if (!hasRequired) {
+      return res.status(400).json({
+        error: "File must contain product_name (or product) and either price or total_amount (or discounted_price). Found columns: " + headers.join(", "),
+      });
+    }
+
+    const rows = [];
+    const dateEnd = new Date();
+    const dateStart = new Date(dateEnd);
+    dateStart.setFullYear(dateStart.getFullYear() - 1);
+
+    for (const raw of rawRows) {
+      const row = useSyntheticDate
+        ? mapRowWithSyntheticDate(raw, colMap, dateStart, dateEnd)
+        : mapRow(raw, colMap);
+      if (row) rows.push(row);
+    }
+    if (rows.length === 0) {
+      return res.status(400).json({ error: "No valid rows found. Check product_name, price/total_amount/discounted_price format." });
+    }
+
+    const replace = req.body && (req.body.replace === "true" || req.body.replace === true);
+    if (replace) {
+      await query("TRUNCATE TABLE sales RESTART IDENTITY");
+    }
+
+    let inserted = 0;
+    for (const row of rows) {
+      await query(
+        `INSERT INTO sales (order_date, product_name, category, region, quantity, price, total_amount)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [row.order_date, row.product_name, row.category, row.region, row.quantity, row.price, row.total_amount]
+      );
+      inserted++;
+    }
+    return res.json({ recordsInserted: inserted, replaced: replace });
+  } catch (err) {
+    console.error("uploadSales error:", err);
+    return res.status(500).json({ error: err.message || "Upload failed" });
   }
-  const ext = (req.file.originalname || "").toLowerCase().replace(/.*\./, "");
-  if (!["csv", "xlsx", "xls"].includes(ext)) {
-    return res.status(400).json({ error: "Only CSV, XLSX, and XLS files are allowed" });
-  }
-  const rawRows = parseFile(req.file.buffer, ext);
-  if (rawRows.length === 0) {
-    return res.status(400).json({ error: "File is empty or has no data rows" });
-  }
-  const headers = Object.keys(rawRows[0] || {});
-  const colMap = {};
-  for (const [dbCol, aliases] of Object.entries(COLUMN_MAP)) {
-    const found = findColumn(headers, aliases);
-    if (found) colMap[dbCol] = found;
-  }
-  if (!colMap.order_date || !colMap.product_name || !colMap.price || !colMap.total_amount) {
-    return res.status(400).json({
-      error: "File must contain order_date/date, product_name/product, price, and total_amount/total columns",
-    });
-  }
-  const rows = [];
-  for (const raw of rawRows) {
-    const row = mapRow(raw, colMap);
-    if (row) rows.push(row);
-  }
-  if (rows.length === 0) {
-    return res.status(400).json({ error: "No valid rows found. Check date, product, price, and total_amount format." });
-  }
-  let inserted = 0;
-  for (const row of rows) {
-    await query(
-      `INSERT INTO sales (order_date, product_name, category, region, quantity, price, total_amount)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [row.order_date, row.product_name, row.category, row.region, row.quantity, row.price, row.total_amount]
-    );
-    inserted++;
-  }
-  return res.json({ recordsInserted: inserted });
 }
 
 module.exports = { uploadSales };

@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, Typography, Box, Button } from "@mui/material";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
-const COLORS = ["#0f172a", "#3b82f6", "#60a5fa", "#93c5fd", "#dbeafe"];
+const COLORS = ["#0f172a", "#60a5fa", "#93c5fd", "#dbeafe", "#1e40af"];
+const ONLINE_COLOR = "#3b82f6"; // blue for "Online" region
 
 /**
  * Sales Overview: center = total revenue (from summary), donut = revenue by region.
@@ -17,6 +19,14 @@ export default function AnalyticsSalesOverviewCard({ value = "₹0", data = [] }
     name: d.region || d.name || "Other",
     value: Number(d.revenue ?? d.value ?? 0),
   })).filter((d) => d.value > 0);
+
+  let otherIndex = 0;
+  const colorByIndex = chartData.map((d) => {
+    if (String(d.name || "").trim().toLowerCase() === "online") return ONLINE_COLOR;
+    const c = COLORS[otherIndex % COLORS.length];
+    otherIndex++;
+    return c;
+  });
 
   const hasChartData = chartData.length > 0;
 
@@ -65,7 +75,7 @@ export default function AnalyticsSalesOverviewCard({ value = "₹0", data = [] }
                       strokeWidth={2}
                     >
                       {chartData.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        <Cell key={i} fill={colorByIndex[i]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(val) => [`₹${Number(val).toLocaleString()}`, "Revenue"]} />
@@ -88,7 +98,7 @@ export default function AnalyticsSalesOverviewCard({ value = "₹0", data = [] }
           <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 2, mt: 2 }}>
             {chartData.map((item, i) => (
               <Box key={item.name} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COLORS[i % COLORS.length] }} />
+                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: colorByIndex[i] }} />
                 <Typography variant="caption" color="text.secondary" fontWeight={500}>
                   {item.name}
                 </Typography>
@@ -102,6 +112,8 @@ export default function AnalyticsSalesOverviewCard({ value = "₹0", data = [] }
             Revenue by region
           </Typography>
           <Button
+            component={Link}
+            href="/regions"
             variant="contained"
             endIcon={<ChevronRightIcon />}
             sx={{

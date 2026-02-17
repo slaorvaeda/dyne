@@ -2,13 +2,15 @@
 
 import { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Box, CircularProgress } from "@mui/material";
+import { Box, CircularProgress, Alert, Button } from "@mui/material";
 import {
   fetchSummary,
   fetchTrends,
   fetchProductWise,
   fetchRegionWise,
+  fetchCategoryWise,
   fetchFilters,
+  clearError,
 } from "@/store/slices/salesSlice";
 import AnalyticsPageHeader from "@/components/Dashboard/AnalyticsPageHeader";
 import Filters from "@/components/Dashboard/Filters";
@@ -23,6 +25,7 @@ import AnalyticsSalesByCountriesCard from "@/components/Dashboard/AnalyticsSales
 import RevenueLineChart from "@/components/Dashboard/RevenueLineChart";
 import ProductBarChart from "@/components/Dashboard/ProductBarChart";
 import RegionPieChart from "@/components/Dashboard/RegionPieChart";
+import CategoryBarChart from "@/components/Dashboard/CategoryBarChart";
 import { Card, CardContent, Typography } from "@mui/material";
 import dayjs from "dayjs";
 
@@ -71,6 +74,7 @@ export default function DashboardPage() {
   const trends = useSelector((state) => state.sales.trends);
   const productWise = useSelector((state) => state.sales.productWise);
   const regionWise = useSelector((state) => state.sales.regionWise);
+  const categoryWise = useSelector((state) => state.sales.categoryWise);
   const filters = useSelector((state) => state.sales.filters);
   const upload = useSelector((state) => state.sales.upload);
   const loading = useSelector((state) => state.sales.loading);
@@ -90,6 +94,7 @@ export default function DashboardPage() {
     dispatch(fetchTrends({ ...params, type: "daily" }));
     dispatch(fetchProductWise(params));
     dispatch(fetchRegionWise(params));
+    dispatch(fetchCategoryWise(params));
   }, [dispatch, params]);
 
   useEffect(() => {
@@ -110,17 +115,34 @@ export default function DashboardPage() {
     loadData();
   }, [loadData]);
 
-  const isLoading = loading.summary || loading.trends;
+  const isLoading = loading.summary || loading.trends || loading.productWise || loading.regionWise || loading.categoryWise;
+  const error = useSelector((state) => state.sales.error);
 
   const displayTrends = useMemo(() => (Array.isArray(trends) ? trends : []), [trends]);
   const displayProductWise = useMemo(() => (Array.isArray(productWise) ? productWise : []), [productWise]);
   const displayRegionWise = useMemo(() => (Array.isArray(regionWise) ? regionWise : []), [regionWise]);
+  const displayCategoryWise = useMemo(() => (Array.isArray(categoryWise) ? categoryWise : []), [categoryWise]);
+  // Only these categories show in dropdown (excludes Car&Motorbike, Health&PersonalCare, Toys&Games)
+  const ALLOWED_CATEGORIES = [
+    "Computers&Accessories",
+    "Electronics",
+    "Home&Kitchen",
+    "HomeImprovement",
+    "MusicalInstruments",
+    "OfficeProducts",
+  ];
   const displayFilters = useMemo(() => {
-    const trimNonEmpty = (list) =>
-      [...new Set((list || []).map((x) => String(x).trim()).filter((x) => x.length > 0))];
+    const fromApi = (list) => {
+      if (!Array.isArray(list)) return [];
+      return list
+        .map((x) => (x != null ? String(x).trim() : ""))
+        .filter((x) => x.length > 0);
+    };
+    const apiCategories = fromApi(filters.categories);
+    const categories = apiCategories.filter((c) => ALLOWED_CATEGORIES.includes(c));
     return {
-      categories: trimNonEmpty(filters.categories),
-      regions: trimNonEmpty(filters.regions),
+      categories,
+      regions: fromApi(filters.regions),
     };
   }, [filters]);
 
@@ -160,6 +182,20 @@ export default function DashboardPage() {
   return (
     <Box sx={{ width: "100%", maxWidth: "100%", overflow: "hidden", color: "text.primary" }}>
       <AnalyticsPageHeader title="Analytics" />
+      {error && (
+        <Alert
+          severity="error"
+          onClose={() => dispatch(clearError())}
+          action={
+            <Button color="inherit" size="small" onClick={() => dispatch(clearError())}>
+              Dismiss
+            </Button>
+          }
+          sx={{ mb: 2 }}
+        >
+          {error}
+        </Alert>
+      )}
       {hasNoData && (
         <Box
           sx={{
@@ -259,18 +295,27 @@ export default function DashboardPage() {
         />
       </Box>
 
-      {/* Sales Overview (narrower) + Sales by Countries (wider): full row */}
+      {/* Revenue by category | Sales Overview | Sales by Region — one row */}
       <Box
         sx={{
           display: "flex",
+          flexWrap: "wrap",
           flexDirection: { xs: "column", md: "row" },
           gap: 3,
           width: "100%",
-          "& > *": { minHeight: 580, minWidth: 0 },
-          "& > *:first-of-type": { flex: { md: "0 0 35%" } },
-          "& > *:last-of-type": { flex: { md: "1 1 65%" } },
+          "& > *": { minWidth: 0, flex: { md: "1 1 280px" }, minHeight: 420 },
         }}
       >
+        <Card sx={{ borderRadius: "2rem", bgcolor: "background.paper", border: "1px solid", borderColor: "divider", boxShadow: 1 }}>
+          <CardContent>
+            <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom>
+              Revenue by category
+            </Typography>
+            <Box sx={{ width: "100%", height: 320 }}>
+              <CategoryBarChart data={displayCategoryWise} />
+            </Box>
+          </CardContent>
+        </Card>
         <AnalyticsSalesOverviewCard
           value={new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(totalRevenue)}
           data={displayRegionWise}

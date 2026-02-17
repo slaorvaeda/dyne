@@ -12,7 +12,7 @@ import {
   Legend,
 } from "recharts";
 
-export default function RevenueLineChart({ data = [] }) {
+export default function RevenueLineChart({ data = [], height = 320 }) {
   const chartData = (Array.isArray(data) ? data : []).map((d) => ({
     ...d,
     revenue: Number(d.revenue) || 0,
@@ -21,7 +21,7 @@ export default function RevenueLineChart({ data = [] }) {
 
   if (chartData.length === 0) {
     return (
-      <ResponsiveContainer width="100%" height={320}>
+      <ResponsiveContainer width="100%" height={height}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "text.secondary" }}>
           No trend data
         </Box>
@@ -30,7 +30,7 @@ export default function RevenueLineChart({ data = [] }) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={320}>
+    <ResponsiveContainer width="100%" height={height}>
       <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="date" tick={{ fontSize: 12 }} />

@@ -27,17 +27,22 @@ export default function Filters({
     },
   };
 
+  const startDay = startDate ? dayjs(startDate) : null;
+  const endDay = endDate ? dayjs(endDate) : null;
+
   return (
     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center", mb: 4 }}>
       <DatePicker
         label="Start Date"
-        value={startDate ? dayjs(startDate) : null}
+        value={startDay}
+        maxDate={endDay ?? undefined}
         onChange={(d) => onStartDateChange(d ? d.format("YYYY-MM-DD") : null)}
         slotProps={{ textField: { size: "small", sx: { minWidth: 160, width: 160 } } }}
       />
       <DatePicker
         label="End Date"
-        value={endDate ? dayjs(endDate) : null}
+        value={endDay}
+        minDate={startDay ?? undefined}
         onChange={(d) => onEndDateChange(d ? d.format("YYYY-MM-DD") : null)}
         slotProps={{ textField: { size: "small", sx: { minWidth: 160, width: 160 } } }}
       />

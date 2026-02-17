@@ -24,9 +24,11 @@ import { useMobileSidebar } from "@/context/MobileSidebarContext";
 
 const routeTitles = {
   "/": "Dashboard",
+  "/trends": "Trends",
+  "/products": "Products",
+  "/regions": "Regions",
   "/transactions": "Transactions",
   "/customers": "Customers",
-  "/products": "Products",
   "/notifications": "Notifications",
   "/help": "Help Center",
   "/settings": "Settings",

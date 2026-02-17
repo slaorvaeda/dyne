@@ -13,13 +13,18 @@ export default function GlobalSnackbar() {
 
   const isSuccess = upload.recordsInserted != null && !upload.error && !loading;
   const message = isSuccess
-    ? `File processed successfully. ${upload.recordsInserted} records inserted.`
+    ? upload.replaced
+      ? `Existing data replaced. ${upload.recordsInserted} records inserted.`
+      : `File processed successfully. ${upload.recordsInserted} records inserted.`
     : error || upload.error;
   const open = Boolean(message);
 
   const handleClose = () => {
     if (isSuccess) dispatch(clearUploadResult());
-    else dispatch(clearError());
+    else {
+      dispatch(clearError());
+      dispatch(clearUploadResult());
+    }
   };
 
   useEffect(() => {

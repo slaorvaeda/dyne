@@ -7,9 +7,12 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-export async function uploadSalesFile(file) {
+export async function uploadSalesFile(file, options = {}) {
   const formData = new FormData();
   formData.append("file", file);
+  if (options.replace) {
+    formData.append("replace", "true");
+  }
   const { data } = await api.post("/sales/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
@@ -36,27 +39,24 @@ export async function getRegionWise(params = {}) {
   return data;
 }
 
+export async function getCategoryWise(params = {}) {
+  const { data } = await api.get("/sales/category-wise", { params });
+  return data;
+}
+
 export async function getSales(params = {}) {
   const { data } = await api.get("/sales", { params });
   return data;
 }
 
 export async function getCategories() {
-  try {
-    const { data } = await api.get("/sales/categories");
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const { data } = await api.get("/sales/categories");
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getRegions() {
-  try {
-    const { data } = await api.get("/sales/regions");
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const { data } = await api.get("/sales/regions");
+  return Array.isArray(data) ? data : [];
 }
 
 export default api;

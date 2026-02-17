@@ -1,4 +1,11 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Sales & Revenue Analytics — Frontend
+
+React (Next.js) dashboard for the Dyne machine test. Uses MUI, Recharts, Redux Toolkit.
+
+## Prerequisites
+
+- Backend API running at `http://localhost:5001` (see root [README](../README.md)).
+- Optional: set `NEXT_PUBLIC_API_URL=http://localhost:5001/api` in `.env.local` if the API is elsewhere.
 
 ## Getting Started
 

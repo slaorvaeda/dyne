@@ -7,6 +7,35 @@ function parseFilters(req) {
   return { startDate, endDate, category: cat, region: reg };
 }
 
+function isValidDateStr(s) {
+  if (!s || typeof s !== "string") return false;
+  const match = String(s).trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const [, y, m, d] = match.map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+}
+
+function validateDateRange(res, startDate, endDate) {
+  if (!startDate || !endDate) {
+    res.status(400).json({ error: "startDate and endDate are required" });
+    return false;
+  }
+  if (!isValidDateStr(startDate)) {
+    res.status(400).json({ error: "startDate must be YYYY-MM-DD" });
+    return false;
+  }
+  if (!isValidDateStr(endDate)) {
+    res.status(400).json({ error: "endDate must be YYYY-MM-DD" });
+    return false;
+  }
+  if (startDate > endDate) {
+    res.status(400).json({ error: "startDate must be before or equal to endDate" });
+    return false;
+  }
+  return true;
+}
+
 function whereClause(includeDate = true) {
   let sql = " WHERE 1=1 ";
   const params = [];
@@ -23,9 +52,7 @@ function whereClause(includeDate = true) {
 async function getSummary(req, res) {
   try {
     const { startDate, endDate, category, region } = parseFilters(req);
-    if (!startDate || !endDate) {
-      return res.status(400).json({ error: "startDate and endDate are required" });
-    }
+    if (!validateDateRange(res, startDate, endDate)) return;
     const { sql: where, paramCount } = whereClause(true);
     const result = await query(
       `SELECT
@@ -48,10 +75,8 @@ async function getSummary(req, res) {
 async function getTrends(req, res) {
   try {
     const { startDate, endDate, category, region } = parseFilters(req);
+    if (!validateDateRange(res, startDate, endDate)) return;
     const type = (req.query.type || "daily").toLowerCase();
-    if (!startDate || !endDate) {
-      return res.status(400).json({ error: "startDate and endDate are required" });
-    }
     let dateExpr;
     if (type === "weekly") {
       dateExpr = "date_trunc('week', order_date)::date";
@@ -82,9 +107,7 @@ async function getTrends(req, res) {
 async function getProductWise(req, res) {
   try {
     const { startDate, endDate, category, region } = parseFilters(req);
-    if (!startDate || !endDate) {
-      return res.status(400).json({ error: "startDate and endDate are required" });
-    }
+    if (!validateDateRange(res, startDate, endDate)) return;
     const { sql: where } = whereClause(true);
     const result = await query(
       `SELECT product_name, COALESCE(SUM(total_amount), 0)::numeric as revenue
@@ -108,9 +131,7 @@ async function getProductWise(req, res) {
 async function getRegionWise(req, res) {
   try {
     const { startDate, endDate, category, region } = parseFilters(req);
-    if (!startDate || !endDate) {
-      return res.status(400).json({ error: "startDate and endDate are required" });
-    }
+    if (!validateDateRange(res, startDate, endDate)) return;
     const { sql: where } = whereClause(true);
     const result = await query(
       `SELECT region, COALESCE(SUM(total_amount), 0)::numeric as revenue
@@ -130,15 +151,55 @@ async function getRegionWise(req, res) {
   }
 }
 
+// Allowed categories for the dropdown and category-wise report
+const ALLOWED_CATEGORIES = [
+  "Computers&Accessories",
+  "Electronics",
+  "Home&Kitchen",
+  "HomeImprovement",
+  "MusicalInstruments",
+  "OfficeProducts",
+];
+
+async function getCategoryWise(req, res) {
+  try {
+    const { startDate, endDate, category, region } = parseFilters(req);
+    if (!validateDateRange(res, startDate, endDate)) return;
+    const { sql: where } = whereClause(true);
+    const result = await query(
+      `SELECT TRIM(category) AS category, COALESCE(SUM(total_amount), 0)::numeric as revenue
+       FROM sales ${where}
+       GROUP BY TRIM(category)
+       ORDER BY revenue DESC`,
+      [startDate, endDate, category, region]
+    );
+    const allowedSet = new Set(ALLOWED_CATEGORIES);
+    const data = result.rows
+      .map((r) => ({
+        category: (r.category && String(r.category).trim()) || "Other",
+        revenue: parseFloat(r.revenue || 0),
+      }))
+      .filter((r) => r.revenue > 0 && allowedSet.has(r.category));
+    return res.json(data);
+  } catch (err) {
+    console.error("getCategoryWise error:", err);
+    return res.status(500).json({ error: "Failed to fetch category-wise data" });
+  }
+}
+
 async function getCategories(req, res) {
   try {
     const result = await query(
-      `SELECT DISTINCT TRIM(category) AS category FROM sales
-       WHERE category IS NOT NULL AND TRIM(category) != ''
-       ORDER BY category`
+      `SELECT DISTINCT TRIM(category) AS category
+       FROM sales
+       WHERE category IS NOT NULL AND TRIM(category) != '' AND LENGTH(TRIM(category)) > 0`
     );
-    const list = result.rows.map((r) => (r.category || "").trim()).filter((c) => c.length > 0);
-    return res.json([...new Set(list)]);
+    const fromDb = new Set(
+      result.rows.map((r) => (r.category != null ? String(r.category).trim() : "")).filter((c) => c.length > 0)
+    );
+    // Only return allowed categories that exist in the table
+    const list = ALLOWED_CATEGORIES.filter((c) => fromDb.has(c));
+    return res.json(list);
   } catch (err) {
     console.error("getCategories error:", err);
     return res.status(500).json({ error: "Failed to fetch categories" });
@@ -165,6 +226,7 @@ module.exports = {
   getTrends,
   getProductWise,
   getRegionWise,
+  getCategoryWise,
   getCategories,
   getRegions,
 };

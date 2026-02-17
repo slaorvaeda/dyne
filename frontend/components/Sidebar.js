@@ -20,8 +20,6 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
-import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
@@ -30,14 +28,16 @@ import InsightsIcon from "@mui/icons-material/Insights";
 import StackedBarChartIcon from "@mui/icons-material/StackedBarChart";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import PublicIcon from "@mui/icons-material/Public";
 
 const STORAGE_KEY = "sidebarExpanded";
 
 const navItems = [
   { label: "Dashboard", href: "/", icon: DashboardOutlinedIcon },
-  { label: "Transactions", href: "/transactions", icon: ReceiptLongOutlinedIcon },
-  { label: "Customers", href: "/customers", icon: PeopleOutlinedIcon },
+  { label: "Trends", href: "/trends", icon: TrendingUpIcon },
   { label: "Products", href: "/products", icon: ShoppingBagOutlinedIcon },
+  { label: "Regions", href: "/regions", icon: PublicIcon },
   { label: "Notifications", href: "/notifications", icon: NotificationsOutlinedIcon },
   { label: "Help Center", href: "/help", icon: HelpOutlineIcon },
   { label: "Settings", href: "/settings", icon: SettingsOutlinedIcon },
@@ -148,7 +148,7 @@ export default function Sidebar({ inDrawer = false, onClose }) {
               display: showFull ? "block" : "none",
             }}
           >
-            ANTICS
+            Analytics
           </Typography>
         </Box>
         {showFull && (
@@ -311,11 +311,11 @@ export default function Sidebar({ inDrawer = false, onClose }) {
               flexShrink: 0,
             }}
           >
-            TW
+            DN
           </Box>
           <Box sx={{ flex: 1, minWidth: 0, display: showFull ? "block" : "none" }}>
             <Typography variant="body2" fontWeight={600} noWrap>
-              Teja Williams
+              Durga Nayak
             </Typography>
             <Typography variant="caption" color="text.secondary" noWrap display="block">
               View profile

@@ -11,33 +11,31 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const DEFAULT_TOP_PRODUCTS = 15;
-const MAX_LABEL_LEN = 40;
+const MAX_LABEL_LEN = 18;
 
 function truncate(str, max = MAX_LABEL_LEN) {
   const s = String(str || "").trim();
   return s.length <= max ? s : s.slice(0, max - 1) + "…";
 }
 
-export default function ProductBarChart({ data = [], height = 320, maxProducts = DEFAULT_TOP_PRODUCTS }) {
+export default function CategoryBarChart({ data = [], height = 320 }) {
   const theme = useTheme();
   const gridStroke = theme.palette.divider;
   const tickFill = theme.palette.text.secondary;
 
   const chartData = (Array.isArray(data) ? data : [])
     .map((d) => ({
-      name: d.product_name || d.product || "Unknown",
-      fullName: d.product_name || d.product || "Unknown",
+      name: d.category || "Other",
+      fullName: d.category || "Other",
       revenue: Number(d.revenue || d.total_amount) || 0,
     }))
-    .filter((d) => d.revenue > 0)
-    .slice(0, maxProducts);
+    .filter((d) => d.revenue > 0);
 
   if (chartData.length === 0) {
     return (
       <ResponsiveContainer width="100%" height={height}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "text.secondary" }}>
-          No product data for selected period
+          No category data for selected period
         </Box>
       </ResponsiveContainer>
     );
