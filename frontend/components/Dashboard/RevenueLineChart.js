@@ -1,5 +1,6 @@
 "use client";
 
+import { Box } from "@mui/material";
 import {
   LineChart,
   Line,
@@ -17,6 +18,16 @@ export default function RevenueLineChart({ data = [] }) {
     revenue: Number(d.revenue) || 0,
     date: d.date,
   }));
+
+  if (chartData.length === 0) {
+    return (
+      <ResponsiveContainer width="100%" height={320}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "text.secondary" }}>
+          No trend data
+        </Box>
+      </ResponsiveContainer>
+    );
+  }
 
   return (
     <ResponsiveContainer width="100%" height={320}>

@@ -1,13 +1,11 @@
 "use client";
 
-import { useMediaQuery, Box } from "@mui/material";
+import { Box } from "@mui/material";
 import Sidebar from "./Sidebar";
 
 export default function SidebarWrapper() {
-  const isDesktop = useMediaQuery("(min-width:960px)");
-  if (!isDesktop) return null;
   return (
-    <Box sx={{ flexShrink: 0 }}>
+    <Box sx={{ flexShrink: 0, display: { xs: "none", md: "block" } }}>
       <Sidebar />
     </Box>
   );

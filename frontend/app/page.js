@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useMemo, useState } from "react";
+import { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Box, CircularProgress } from "@mui/material";
 import {
@@ -25,20 +25,40 @@ import ProductBarChart from "@/components/Dashboard/ProductBarChart";
 import RegionPieChart from "@/components/Dashboard/RegionPieChart";
 import { Card, CardContent, Typography } from "@mui/material";
 import dayjs from "dayjs";
-import {
-  dummySummary,
-  dummyTrends,
-  dummyFilters,
-  dummyProductWise,
-  dummyRegionWise,
-} from "@/data/dummySalesData";
 
 const defaultStart = dayjs().subtract(1, "month").format("YYYY-MM-DD");
 const defaultEnd = dayjs().format("YYYY-MM-DD");
 
-// Mini chart data for KPI cards (from trends or static)
-const miniLineData = (trends) =>
-  (trends || []).slice(0, 14).map((d) => ({ v: Math.round((d.revenue || 0) / 2000) }));
+// Mini chart data for KPI cards: use actual revenue scaled for area chart
+const miniLineData = (trends) => {
+  const arr = (trends || []).slice(0, 31);
+  if (arr.length === 0) return [{ v: 0 }];
+  const maxR = Math.max(1, ...arr.map((d) => d.revenue || 0));
+  return arr.map((d) => ({ v: Math.round((Number(d.revenue) || 0) / maxR * 100) }));
+};
+
+// Sales growth: first half vs second half of period (by revenue)
+const salesGrowthFromTrends = (trends) => {
+  const arr = Array.isArray(trends) ? trends : [];
+  if (arr.length < 2) return { pct: "0%", subtitle: arr.length === 0 ? "No trend data" : "Single data point" };
+  const mid = Math.floor(arr.length / 2);
+  const firstHalf = arr.slice(0, mid).reduce((s, d) => s + (Number(d.revenue) || 0), 0);
+  const secondHalf = arr.slice(mid).reduce((s, d) => s + (Number(d.revenue) || 0), 0);
+  if (firstHalf === 0) return { pct: secondHalf > 0 ? "+100%" : "0%", subtitle: "vs first half of period" };
+  const change = ((secondHalf - firstHalf) / firstHalf) * 100;
+  const sign = change >= 0 ? "+" : "";
+  return { pct: `${sign}${Math.round(change)}%`, subtitle: "vs first half of period" };
+};
+
+// Win rate: % of days in period that had sales (trends = one point per day with revenue)
+const winRateFromTrendsAndRange = (trends, startDate, endDate) => {
+  const daysWithSales = Array.isArray(trends) ? trends.length : 0;
+  if (!startDate || !endDate) return { pct: "0%", subtitle: "of days in period" };
+  const total = dayjs(endDate).diff(dayjs(startDate), "day") + 1;
+  if (total <= 0) return { pct: "0%", subtitle: "of days in period" };
+  const pct = Math.min(100, Math.round((daysWithSales / total) * 100));
+  return { pct: `${pct}%`, subtitle: `of ${total} days in period` };
+};
 
 export default function DashboardPage() {
   const dispatch = useDispatch();
@@ -52,6 +72,7 @@ export default function DashboardPage() {
   const productWise = useSelector((state) => state.sales.productWise);
   const regionWise = useSelector((state) => state.sales.regionWise);
   const filters = useSelector((state) => state.sales.filters);
+  const upload = useSelector((state) => state.sales.upload);
   const loading = useSelector((state) => state.sales.loading);
 
   const params = useMemo(
@@ -75,40 +96,56 @@ export default function DashboardPage() {
     dispatch(fetchFilters());
   }, [dispatch]);
 
+  const lastUploadInserted = useRef(null);
+  // Refetch categories/regions from DB after successful upload so new options appear
+  useEffect(() => {
+    const inserted = upload?.recordsInserted;
+    if (inserted != null && typeof inserted === "number" && lastUploadInserted.current !== inserted) {
+      lastUploadInserted.current = inserted;
+      dispatch(fetchFilters());
+    }
+  }, [upload?.recordsInserted, dispatch]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   const isLoading = loading.summary || loading.trends;
 
-  const displayTrends = useMemo(
-    () => (Array.isArray(trends) && trends.length > 0 ? trends : dummyTrends),
-    [trends]
-  );
-  const displayProductWise = useMemo(
-    () => (Array.isArray(productWise) && productWise.length > 0 ? productWise : dummyProductWise),
-    [productWise]
-  );
-  const displayRegionWise = useMemo(
-    () => (Array.isArray(regionWise) && regionWise.length > 0 ? regionWise : dummyRegionWise),
-    [regionWise]
-  );
-  const displayFilters = useMemo(
-    () =>
-      filters.categories?.length > 0 || filters.regions?.length > 0
-        ? filters
-        : { categories: dummyFilters.categories, regions: dummyFilters.regions },
-    [filters]
-  );
+  const displayTrends = useMemo(() => (Array.isArray(trends) ? trends : []), [trends]);
+  const displayProductWise = useMemo(() => (Array.isArray(productWise) ? productWise : []), [productWise]);
+  const displayRegionWise = useMemo(() => (Array.isArray(regionWise) ? regionWise : []), [regionWise]);
+  const displayFilters = useMemo(() => {
+    const trimNonEmpty = (list) =>
+      [...new Set((list || []).map((x) => String(x).trim()).filter((x) => x.length > 0))];
+    return {
+      categories: trimNonEmpty(filters.categories),
+      regions: trimNonEmpty(filters.regions),
+    };
+  }, [filters]);
 
-  const totalRevenue = summary?.totalRevenue ?? dummySummary.totalRevenue;
-  const revenueGrowthPct = totalRevenue > 0 ? "+65%" : "+65%";
-  const quarterlyCurrent = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(
-    Math.round(totalRevenue * 0.85)
+  const totalRevenue = Number(summary?.totalRevenue) || 0;
+  const totalQuantity = Number(summary?.totalQuantity) || 0;
+  const { pct: salesGrowthPct, subtitle: salesGrowthSubtitle } = useMemo(
+    () => salesGrowthFromTrends(displayTrends),
+    [displayTrends]
   );
+  const { pct: winRatePct, subtitle: winRateSubtitle } = useMemo(
+    () => winRateFromTrendsAndRange(displayTrends, startDate, endDate),
+    [displayTrends, startDate, endDate]
+  );
+  const revenueGrowthPct = salesGrowthPct;
+  const revenueGrowthSubtitle = displayTrends.length < 2 ? (displayTrends.length === 0 ? "No trend data" : "Single data point") : "revenue vs first half of period";
   const quarterlyTotal = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(
     totalRevenue
   );
+  const topRegion = displayRegionWise.length > 0 ? displayRegionWise[0] : null;
+  const topRegionRevenue = topRegion ? Number(topRegion.revenue) || 0 : 0;
+  const quarterlyPct = totalRevenue > 0 && topRegionRevenue > 0 ? Math.round((topRegionRevenue / totalRevenue) * 100) : 0;
+  const quarterlyCurrent = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(
+    Math.round(topRegionRevenue)
+  );
+  const quarterlyTargetLabel = String(quarterlyPct);
 
   if (isLoading) {
     return (
@@ -118,9 +155,29 @@ export default function DashboardPage() {
     );
   }
 
+  const hasNoData = totalRevenue === 0 && displayTrends.length === 0 && displayProductWise.length === 0 && displayRegionWise.length === 0;
+
   return (
     <Box sx={{ width: "100%", maxWidth: "100%", overflow: "hidden", color: "text.primary" }}>
       <AnalyticsPageHeader title="Analytics" />
+      {hasNoData && (
+        <Box
+          sx={{
+            mb: 3,
+            p: 2,
+            borderRadius: 2,
+            bgcolor: "action.hover",
+            border: "1px dashed",
+            borderColor: "divider",
+            textAlign: "center",
+            color: "text.secondary",
+          }}
+        >
+          <Typography variant="body2">
+            No sales data yet. Upload a CSV or Excel file above to see analytics.
+          </Typography>
+        </Box>
+      )}
 
       <Filters
         startDate={startDate}
@@ -129,6 +186,7 @@ export default function DashboardPage() {
         region={region}
         categories={displayFilters.categories || []}
         regions={displayFilters.regions || []}
+        filtersLoading={loading.filters}
         onStartDateChange={setStartDate}
         onEndDateChange={setEndDate}
         onCategoryChange={setCategory}
@@ -188,10 +246,17 @@ export default function DashboardPage() {
           },
         }}
       >
-        <SalesGrowthCard value="+50%" subtitle="sales boost, driving growth." data={miniLineData(displayTrends)} />
-        <WinRateCard value="80%" subtitle="of 5,000 leads" />
-        <RevenueGrowthCard value={revenueGrowthPct} subtitle="A remarkable 65% revenue growth driving success." />
-        <QuarterlySalesCard total={quarterlyTotal} current={quarterlyCurrent} pct={85} targetLabel="8% of the target" />
+        <SalesGrowthCard value={salesGrowthPct} subtitle={salesGrowthSubtitle} data={miniLineData(displayTrends)} />
+        <WinRateCard value={winRatePct} subtitle={winRateSubtitle} />
+        <RevenueGrowthCard value={revenueGrowthPct} subtitle={revenueGrowthSubtitle} data={miniLineData(displayTrends)} />
+        <QuarterlySalesCard
+          total={quarterlyTotal}
+          current={quarterlyCurrent}
+          pct={quarterlyPct}
+          targetLabel={quarterlyTargetLabel}
+          legendPrimary="Top region"
+          legendSecondary="Other regions"
+        />
       </Box>
 
       {/* Sales Overview (narrower) + Sales by Countries (wider): full row */}
@@ -207,10 +272,10 @@ export default function DashboardPage() {
         }}
       >
         <AnalyticsSalesOverviewCard
-          value="100%"
-          data={[{ name: "Salary", value: 35 }, { name: "Finance", value: 45 }, { name: "Bonus", value: 20 }]}
+          value={new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(totalRevenue)}
+          data={displayRegionWise}
         />
-        <AnalyticsSalesByCountriesCard />
+        <AnalyticsSalesByCountriesCard data={displayRegionWise} />
       </Box>
     </Box>
   );

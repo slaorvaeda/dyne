@@ -49,11 +49,10 @@ export function SalesGrowthCard({ value = "+50%", subtitle = "sales boost, drivi
   const theme = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const raw = [30, 45, 35, 55, 45, 65, 50, 70, 60, 80];
-  const chartData = data.length
-    ? data.map((d, i) => ({ x: i, v: typeof d === "object" && d?.v != null ? d.v : raw[i % raw.length] }))
-    : raw.map((v, i) => ({ x: i, v }));
-  const safeData = Array.isArray(chartData) && chartData.length > 0 ? chartData : raw.map((v, i) => ({ x: i, v }));
+  const chartData = Array.isArray(data) && data.length > 0
+    ? data.map((d, i) => ({ x: i, v: typeof d === "object" && d?.v != null ? d.v : 0 }))
+    : [];
+  const safeData = chartData.length > 0 ? chartData : [{ x: 0, v: 0 }];
   return (
     <Card sx={cardSx(theme)}>
       <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", "&:last-child": { pb: 3 } }}>
@@ -93,8 +92,8 @@ export function WinRateCard({ value = "80%", subtitle = "of 5,000 leads" }) {
       <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", "&:last-child": { pb: 3 } }}>
         <TitleBlock title="Win Rate" />
         <Box sx={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 192 }}>
-          <Box sx={{ width: "100%", maxWidth: 220, height: 200 }}>
-            <ResponsiveContainer width="100%" height="100%">
+          <Box sx={{ width: "100%", maxWidth: 220, height: 200, minHeight: 200 }}>
+            <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
                   data={[{ name: "done", value: pct }, { name: "rest", value: 100 - pct }]}
@@ -133,8 +132,9 @@ export function RevenueGrowthCard({
   data = [],
 }) {
   const theme = useTheme();
-  const raw = [40, 30, 60, 45, 70, 50, 80, 60, 75, 40];
-  const chartData = data.length ? data.map((d, i) => ({ x: i, v: d?.v ?? d?.r ?? raw[i] })) : raw.map((v, i) => ({ x: i, v }));
+  const chartData = Array.isArray(data) && data.length > 0
+    ? data.map((d, i) => ({ x: i, v: d?.v ?? d?.r ?? 0 }))
+    : [{ x: 0, v: 0 }];
   return (
     <Card sx={cardSx(theme)}>
       <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", "&:last-child": { pb: 3 } }}>
@@ -147,8 +147,8 @@ export function RevenueGrowthCard({
             {subtitle}
           </Typography>
         </Box>
-        <Box sx={{ height: 80, width: "100%", mt: 1 }}>
-          <ResponsiveContainer width="100%" height="100%">
+        <Box sx={{ height: 80, width: "100%", minHeight: 80, mt: 1 }}>
+          <ResponsiveContainer width="100%" height={80}>
             <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <Bar dataKey="v" fill={PRIMARY} radius={[2, 2, 0, 0]} />
             </BarChart>
@@ -160,13 +160,15 @@ export function RevenueGrowthCard({
 }
 
 export function QuarterlySalesCard({
-  total = "$1,000,000",
-  current = "$850,000",
-  pct = 85,
-  targetLabel = "8% of the target",
+  total = "₹0",
+  current = "₹0",
+  pct = 0,
+  targetLabel = "0%",
+  legendPrimary = "Top region",
+  legendSecondary = "Other regions",
 }) {
   const theme = useTheme();
-  const num = typeof pct === "string" ? parseInt(pct, 10) : pct;
+  const num = Math.min(100, Math.max(0, typeof pct === "string" ? parseInt(pct, 10) : pct));
   return (
     <Card sx={cardSx(theme)}>
       <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", "&:last-child": { pb: 3 } }}>
@@ -181,15 +183,15 @@ export function QuarterlySalesCard({
         </Box>
         <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "text.primary" }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "primary.main" }} />
             <Typography variant="caption" color="text.secondary" fontWeight={500}>
-              Salary
+              {legendPrimary}
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "primary.light" }} />
             <Typography variant="caption" color="text.secondary" fontWeight={500}>
-              Finance
+              {legendSecondary}
             </Typography>
           </Box>
         </Box>
@@ -223,10 +225,10 @@ export function QuarterlySalesCard({
                 fontWeight: 700,
               }}
             >
-              {targetLabel.replace(/\s+of the target.*/i, "").trim() || "8%"}
+              {typeof targetLabel === "string" ? targetLabel.replace(/\s+of the target.*/i, "").trim() || "0%" : targetLabel}
             </Box>
             <Typography variant="body2" color="text.secondary" fontWeight={500}>
-              of the target
+              of revenue
             </Typography>
           </Box>
           <OpenInNewIcon sx={{ fontSize: 18, color: "text.disabled" }} />

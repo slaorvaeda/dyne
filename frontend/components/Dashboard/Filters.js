@@ -11,6 +11,7 @@ export default function Filters({
   region,
   categories = [],
   regions = [],
+  filtersLoading = false,
   onStartDateChange,
   onEndDateChange,
   onCategoryChange,
@@ -40,7 +41,7 @@ export default function Filters({
         onChange={(d) => onEndDateChange(d ? d.format("YYYY-MM-DD") : null)}
         slotProps={{ textField: { size: "small", sx: { minWidth: 160, width: 160 } } }}
       />
-      <FormControl size="small" sx={filterControlSx}>
+      <FormControl size="small" sx={filterControlSx} disabled={filtersLoading}>
         <InputLabel id="filter-category-label">Category</InputLabel>
         <Select
           labelId="filter-category-label"
@@ -49,14 +50,17 @@ export default function Filters({
           onChange={(e) => onCategoryChange(e.target.value || null)}
         >
           <MenuItem value="">All</MenuItem>
-          {categories.map((c) => (
-            <MenuItem key={c} value={c}>
-              {c}
-            </MenuItem>
-          ))}
+          {categories.filter((c) => c != null && String(c).trim()).map((c) => {
+            const v = String(c).trim();
+            return (
+              <MenuItem key={v} value={v}>
+                {v}
+              </MenuItem>
+            );
+          })}
         </Select>
       </FormControl>
-      <FormControl size="small" sx={filterControlSx}>
+      <FormControl size="small" sx={filterControlSx} disabled={filtersLoading}>
         <InputLabel id="filter-region-label">Region</InputLabel>
         <Select
           labelId="filter-region-label"
@@ -65,11 +69,14 @@ export default function Filters({
           onChange={(e) => onRegionChange(e.target.value || null)}
         >
           <MenuItem value="">All</MenuItem>
-          {regions.map((r) => (
-            <MenuItem key={r} value={r}>
-              {r}
-            </MenuItem>
-          ))}
+          {regions.filter((r) => r != null && String(r).trim()).map((r) => {
+            const v = String(r).trim();
+            return (
+              <MenuItem key={v} value={v}>
+                {v}
+              </MenuItem>
+            );
+          })}
         </Select>
       </FormControl>
     </Box>

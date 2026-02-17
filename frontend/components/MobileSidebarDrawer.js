@@ -1,14 +1,11 @@
 "use client";
 
-import { Drawer, Box, useMediaQuery } from "@mui/material";
+import { Drawer, Box } from "@mui/material";
 import { useMobileSidebar } from "@/context/MobileSidebarContext";
 import Sidebar from "./Sidebar";
 
 export default function MobileSidebarDrawer() {
-  const isMobile = useMediaQuery("(max-width:959px)");
   const { open, closeSidebar } = useMobileSidebar();
-
-  if (!isMobile) return null;
 
   return (
     <Drawer

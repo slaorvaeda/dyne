@@ -28,7 +28,7 @@ export default function RootLayout({ children }) {
       <body className="m-0 min-h-screen w-full overflow-x-hidden bg-[var(--background)] text-[var(--foreground)]">
         <Providers>
           <MobileSidebarProvider>
-            <div className="flex flex-row w-full min-h-screen flex-1">
+            <div className="flex flex-row w-full min-h-screen flex-1" suppressHydrationWarning>
               <SidebarWrapper />
               <MobileSidebarDrawer />
               <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
