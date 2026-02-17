@@ -19,18 +19,24 @@ docker-compose up -d
 docker ps
 ```
 
-### 2. Install dependencies & run
+### 2. Create database schema (if not auto-created by Docker init)
 
 ```bash
 cd backend
-cp .env.example .env   # optional: edit if needed
+npm run setup-db
+```
+
+### 3. Install dependencies & run
+
+```bash
 npm install
+cp .env.example .env   # optional: edit if needed
 npm run dev
 ```
 
 Server runs at `http://localhost:5000`. API base: `http://localhost:5000/api`.
 
-### 3. Test
+### 4. Test
 
 ```bash
 curl http://localhost:5000/api/health
