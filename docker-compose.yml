@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dyne-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dyne_sales
+    ports:
+      - "5432:5432"
+    volumes:
+      - dyne_postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dyne_sales"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  dyne_postgres_data:
