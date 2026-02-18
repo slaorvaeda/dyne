@@ -2,355 +2,478 @@
 
 import { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Box, CircularProgress, Alert, Button, ToggleButtonGroup, ToggleButton } from "@mui/material";
 import {
-  fetchSummary,
-  fetchTrends,
-  fetchProductWise,
-  fetchRegionWise,
-  fetchCategoryWise,
-  fetchFilters,
-  clearError,
-} from "@/store/slices/salesSlice";
-import AnalyticsPageHeader from "@/components/Dashboard/AnalyticsPageHeader";
-import Filters from "@/components/Dashboard/Filters";
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Button,
+  Alert,
+  CircularProgress,
+  TextField,
+  InputAdornment,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Paper,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from "@mui/material";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
+import StarOutlinedIcon from "@mui/icons-material/StarOutlined";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import Link from "next/link";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import {
-  SalesGrowthCard,
-  WinRateCard,
-  RevenueGrowthCard,
-  QuarterlySalesCard,
-} from "@/components/Dashboard/AnalyticsKPICards";
-import AnalyticsSalesOverviewCard from "@/components/Dashboard/AnalyticsSalesOverviewCard";
-import AnalyticsSalesByCountriesCard from "@/components/Dashboard/AnalyticsSalesByCountriesCard";
-import RevenueLineChart from "@/components/Dashboard/RevenueLineChart";
-import ProductBarChart from "@/components/Dashboard/ProductBarChart";
-import RegionPieChart from "@/components/Dashboard/RegionPieChart";
-import CategoryBarChart from "@/components/Dashboard/CategoryBarChart";
-import { Card, CardContent, Typography } from "@mui/material";
-import dayjs from "dayjs";
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
+import {
+  uploadRatings,
+  fetchProductsPerCategory,
+  fetchTopReviewed,
+  fetchDiscountDistribution,
+  fetchCategoryAvgRating,
+  fetchRatingsList,
+  fetchRatingsFilters,
+  clearRatingsError,
+  clearRatingsUploadResult,
+} from "@/store/slices/ratingsSlice";
 
-const defaultStart = dayjs().subtract(1, "month").format("YYYY-MM-DD");
-const defaultEnd = dayjs().format("YYYY-MM-DD");
+const CHART_COLORS = ["#3b82f6", "#60a5fa", "#93c5fd", "#1e40af", "#0f172a"];
 
-// scale revenue for mini KPI charts
-const miniLineData = (trends) => {
-  const arr = (trends || []).slice(0, 31);
-  if (arr.length === 0) return [{ v: 0 }];
-  const maxR = Math.max(1, ...arr.map((d) => d.revenue || 0));
-  return arr.map((d) => ({ v: Math.round((Number(d.revenue) || 0) / maxR * 100) }));
-};
-
-// growth: second half vs first half of period
-const salesGrowthFromTrends = (trends) => {
-  const arr = Array.isArray(trends) ? trends : [];
-  if (arr.length < 2) return { pct: "0%", subtitle: arr.length === 0 ? "No trend data" : "Single data point" };
-  const mid = Math.floor(arr.length / 2);
-  const firstHalf = arr.slice(0, mid).reduce((s, d) => s + (Number(d.revenue) || 0), 0);
-  const secondHalf = arr.slice(mid).reduce((s, d) => s + (Number(d.revenue) || 0), 0);
-  if (firstHalf === 0) return { pct: secondHalf > 0 ? "+100%" : "0%", subtitle: "vs first half of period" };
-  const change = ((secondHalf - firstHalf) / firstHalf) * 100;
-  const sign = change >= 0 ? "+" : "";
-  return { pct: `${sign}${Math.round(change)}%`, subtitle: "vs first half of period" };
-};
-
-// % of days in range that had sales
-const winRateFromTrendsAndRange = (trends, startDate, endDate) => {
-  const daysWithSales = Array.isArray(trends) ? trends.length : 0;
-  if (!startDate || !endDate) return { pct: "0%", subtitle: "of days in period" };
-  const total = dayjs(endDate).diff(dayjs(startDate), "day") + 1;
-  if (total <= 0) return { pct: "0%", subtitle: "of days in period" };
-  const pct = Math.min(100, Math.round((daysWithSales / total) * 100));
-  return { pct: `${pct}%`, subtitle: `of ${total} days in period` };
-};
-
-export default function DashboardPage() {
+export default function ProductRatingsReviewPage() {
   const dispatch = useDispatch();
-  const [startDate, setStartDate] = useState(defaultStart);
-  const [endDate, setEndDate] = useState(defaultEnd);
-  const [category, setCategory] = useState(null);
-  const [region, setRegion] = useState(null);
-  const [trendType, setTrendType] = useState("daily");
+  const [category, setCategory] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const [searchDebounced, setSearchDebounced] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [file, setFile] = useState(null);
+  const [replace, setReplace] = useState(false);
+  const fileInputRef = useRef(null);
 
-  const summary = useSelector((state) => state.sales.summary);
-  const trends = useSelector((state) => state.sales.trends);
-  const productWise = useSelector((state) => state.sales.productWise);
-  const regionWise = useSelector((state) => state.sales.regionWise);
-  const categoryWise = useSelector((state) => state.sales.categoryWise);
-  const filters = useSelector((state) => state.sales.filters);
-  const upload = useSelector((state) => state.sales.upload);
-  const loading = useSelector((state) => state.sales.loading);
+  const productsPerCategory = useSelector((state) => state.ratings.productsPerCategory);
+  const topReviewed = useSelector((state) => state.ratings.topReviewed);
+  const discountDistribution = useSelector((state) => state.ratings.discountDistribution);
+  const categoryAvgRating = useSelector((state) => state.ratings.categoryAvgRating);
+  const list = useSelector((state) => state.ratings.list);
+  const filters = useSelector((state) => state.ratings.filters);
+  const upload = useSelector((state) => state.ratings.upload);
+  const loading = useSelector((state) => state.ratings.loading);
+  const error = useSelector((state) => state.ratings.error);
 
   const params = useMemo(
     () => ({
-      startDate,
-      endDate,
       ...(category && { category }),
-      ...(region && { region }),
+      ...(ratingFilter && !isNaN(parseFloat(ratingFilter)) && { ratingMin: parseFloat(ratingFilter) }),
+      ...(searchDebounced && { search: searchDebounced }),
     }),
-    [startDate, endDate, category, region]
+    [category, ratingFilter, searchDebounced]
   );
 
-  const loadData = useCallback(() => {
-    dispatch(fetchSummary(params));
-    dispatch(fetchTrends({ ...params, type: trendType }));
-    dispatch(fetchProductWise(params));
-    dispatch(fetchRegionWise(params));
-    dispatch(fetchCategoryWise(params));
-  }, [dispatch, params, trendType]);
+  const loadCharts = useCallback(() => {
+    dispatch(fetchProductsPerCategory(params));
+    dispatch(fetchTopReviewed({ ...params, limit: 20 }));
+    dispatch(fetchDiscountDistribution(params));
+    dispatch(fetchCategoryAvgRating(params));
+  }, [dispatch, params]);
+
+  const loadList = useCallback(() => {
+    dispatch(
+      fetchRatingsList({
+        ...params,
+        page: page + 1,
+        limit: rowsPerPage,
+      })
+    );
+  }, [dispatch, params, page, rowsPerPage]);
 
   useEffect(() => {
-    dispatch(fetchFilters());
+    dispatch(fetchRatingsFilters());
   }, [dispatch]);
 
   const lastUploadInserted = useRef(null);
-  // refetch data after upload so charts update
   useEffect(() => {
     const inserted = upload?.recordsInserted;
     if (inserted != null && typeof inserted === "number" && lastUploadInserted.current !== inserted) {
       lastUploadInserted.current = inserted;
-      dispatch(fetchFilters());
-      loadData();
+      dispatch(fetchRatingsFilters());
+      loadCharts();
+      loadList();
     }
-  }, [upload?.recordsInserted, dispatch, loadData]);
+  }, [upload?.recordsInserted, dispatch, loadCharts, loadList]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadCharts();
+  }, [loadCharts]);
 
-  const isLoading = loading.summary || loading.trends || loading.productWise || loading.regionWise || loading.categoryWise;
-  const error = useSelector((state) => state.sales.error);
+  useEffect(() => {
+    loadList();
+  }, [loadList]);
 
-  const displayTrends = useMemo(() => (Array.isArray(trends) ? trends : []), [trends]);
-  const displayProductWise = useMemo(() => (Array.isArray(productWise) ? productWise : []), [productWise]);
-  const displayRegionWise = useMemo(() => (Array.isArray(regionWise) ? regionWise : []), [regionWise]);
-  const displayCategoryWise = useMemo(() => (Array.isArray(categoryWise) ? categoryWise : []), [categoryWise]);
-  // allowed filter categories
-  const ALLOWED_CATEGORIES = [
-    "Computers&Accessories",
-    "Electronics",
-    "Home&Kitchen",
-    "HomeImprovement",
-    "MusicalInstruments",
-    "OfficeProducts",
-  ];
-  const displayFilters = useMemo(() => {
-    const fromApi = (list) => {
-      if (!Array.isArray(list)) return [];
-      return list
-        .map((x) => (x != null ? String(x).trim() : ""))
-        .filter((x) => x.length > 0);
-    };
-    const apiCategories = fromApi(filters.categories);
-    const categories = apiCategories.filter((c) => ALLOWED_CATEGORIES.includes(c));
-    return {
-      categories,
-      regions: fromApi(filters.regions),
-    };
-  }, [filters]);
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  const totalRevenue = Number(summary?.totalRevenue) || 0;
-  const totalQuantity = Number(summary?.totalQuantity) || 0;
-  const { pct: salesGrowthPct, subtitle: salesGrowthSubtitle } = useMemo(
-    () => salesGrowthFromTrends(displayTrends),
-    [displayTrends]
-  );
-  const { pct: winRatePct, subtitle: winRateSubtitle } = useMemo(
-    () => winRateFromTrendsAndRange(displayTrends, startDate, endDate),
-    [displayTrends, startDate, endDate]
-  );
-  const revenueGrowthPct = salesGrowthPct;
-  const revenueGrowthSubtitle = displayTrends.length < 2 ? (displayTrends.length === 0 ? "No trend data" : "Single data point") : "revenue vs first half of period";
-  const quarterlyTotal = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(
-    totalRevenue
-  );
-  const topRegion = displayRegionWise.length > 0 ? displayRegionWise[0] : null;
-  const topRegionRevenue = topRegion ? Number(topRegion.revenue) || 0 : 0;
-  const quarterlyPct = totalRevenue > 0 && topRegionRevenue > 0 ? Math.round((topRegionRevenue / totalRevenue) * 100) : 0;
-  const quarterlyCurrent = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(
-    Math.round(topRegionRevenue)
-  );
-  const quarterlyTargetLabel = String(quarterlyPct);
+  useEffect(() => {
+    setPage(0);
+  }, [params.category, params.ratingMin, params.search]);
 
-  if (isLoading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400, color: "text.primary" }}>
-        <CircularProgress color="inherit" />
-      </Box>
-    );
-  }
+  const handleUpload = () => {
+    if (!file) return;
+    dispatch(clearRatingsError());
+    dispatch(uploadRatings({ file, replace }));
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
-  const hasNoData = totalRevenue === 0 && displayTrends.length === 0 && displayProductWise.length === 0 && displayRegionWise.length === 0;
+  const handleChangePage = (_, newPage) => setPage(newPage);
+  const handleChangeRowsPerPage = (e) => {
+    setRowsPerPage(parseInt(e.target.value, 10));
+    setPage(0);
+  };
+
+  const isLoading =
+    loading.productsPerCategory ||
+    loading.topReviewed ||
+    loading.discountDistribution ||
+    loading.categoryAvgRating ||
+    loading.filters;
+
+  const hasNoData =
+    productsPerCategory.length === 0 &&
+    topReviewed.length === 0 &&
+    discountDistribution.length === 0 &&
+    categoryAvgRating.length === 0 &&
+    list.data.length === 0;
 
   return (
-    <Box sx={{ width: "100%", maxWidth: "100%", overflow: "hidden", color: "text.primary" }}>
-      <AnalyticsPageHeader title="Analytics" />
+    <Box sx={{ width: "100%", maxWidth: "100%", color: "text.primary" }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: 2,
+            bgcolor: "primary.main",
+            color: "primary.contrastText",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <StarOutlinedIcon sx={{ fontSize: 28 }} />
+        </Box>
+        <Box>
+          <Typography variant="h4" fontWeight={700} sx={{ fontSize: { xs: "1.75rem", md: "2rem" } }}>
+            Product Ratings & Reviews
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Insights into product performance, customer feedback, and review engagement
+          </Typography>
+        </Box>
+      </Box>
+
       {error && (
         <Alert
           severity="error"
-          onClose={() => dispatch(clearError())}
-          action={
-            <Button color="inherit" size="small" onClick={() => dispatch(clearError())}>
-              Dismiss
-            </Button>
-          }
+          onClose={() => dispatch(clearRatingsError())}
           sx={{ mb: 2 }}
         >
           {error}
         </Alert>
       )}
-      {hasNoData && (
-        <Box
-          sx={{
-            mb: 3,
-            p: 2,
-            borderRadius: 2,
-            bgcolor: "action.hover",
-            border: "1px dashed",
-            borderColor: "divider",
-            textAlign: "center",
-            color: "text.secondary",
-          }}
+      {upload.recordsInserted != null && !upload.error && (
+        <Alert
+          severity="success"
+          onClose={() => dispatch(clearRatingsUploadResult())}
+          sx={{ mb: 2 }}
         >
-          <Typography variant="body2">
-            No sales data yet. Upload a CSV or Excel file above to see analytics.
-          </Typography>
-        </Box>
+          {upload.replaced ? `Data replaced. ${upload.recordsInserted} records inserted.` : `${upload.recordsInserted} records imported.`}
+        </Alert>
       )}
 
-      <Filters
-        startDate={startDate}
-        endDate={endDate}
-        category={category}
-        region={region}
-        categories={displayFilters.categories || []}
-        regions={displayFilters.regions || []}
-        filtersLoading={loading.filters}
-        onStartDateChange={setStartDate}
-        onEndDateChange={setEndDate}
-        onCategoryChange={setCategory}
-        onRegionChange={setRegion}
-      />
-
-      {/* charts row */}
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 6 }}>
-        <Card sx={{ flex: "1 1 340px", minWidth: 0, borderRadius: "2rem", bgcolor: "background.paper" }}>
-          <CardContent>
-            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1, mb: 1 }}>
-              <Typography variant="subtitle2" fontWeight={600} color="text.secondary">
-                Revenue trends over time
+      <Card sx={{ borderRadius: "2rem", bgcolor: "background.paper", border: "1px solid", borderColor: "divider", mb: 3 }}>
+        <CardContent>
+          <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom>
+            Upload product & review data (CSV/Excel)
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 2, mt: 1 }}>
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<CloudUploadOutlinedIcon />}
+              sx={{ borderRadius: 2 }}
+            >
+              Choose file
+              <input
+                ref={fileInputRef}
+                type="file"
+                hidden
+                accept=".csv,.xlsx,.xls"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
+            </Button>
+            {file && (
+              <Typography variant="body2" color="text.secondary">
+                {file.name}
               </Typography>
-              <ToggleButtonGroup
-                value={trendType}
-                exclusive
-                onChange={(_, v) => v != null && setTrendType(v)}
-                size="small"
-                sx={{ "& .MuiToggleButton-root": { py: 0.25, px: 1, fontSize: "0.75rem" } }}
-              >
-                <ToggleButton value="daily">Daily</ToggleButton>
-                <ToggleButton value="weekly">Weekly</ToggleButton>
-                <ToggleButton value="monthly">Monthly</ToggleButton>
-              </ToggleButtonGroup>
+            )}
+            <Button
+              variant="contained"
+              onClick={handleUpload}
+              disabled={!file || loading.upload}
+              sx={{ borderRadius: 2 }}
+            >
+              {loading.upload ? "Uploading…" : "Upload"}
+            </Button>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <input
+                type="checkbox"
+                id="replace-ratings"
+                checked={replace}
+                onChange={(e) => setReplace(e.target.checked)}
+              />
+              <Typography component="label" htmlFor="replace-ratings" variant="body2" color="text.secondary">
+                Replace existing data
+              </Typography>
             </Box>
-            <Box sx={{ width: "100%", height: 320 }}>
-              <RevenueLineChart data={displayTrends} />
-            </Box>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: "1 1 340px", minWidth: 0, borderRadius: "2rem", bgcolor: "background.paper" }}>
-          <CardContent>
-            <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom>
-              Product-wise sales
-            </Typography>
-            <Box sx={{ width: "100%", height: 320 }}>
-              <ProductBarChart data={displayProductWise} />
-            </Box>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: "1 1 320px", minWidth: 0, maxWidth: 420, borderRadius: "2rem", bgcolor: "background.paper" }}>
-          <CardContent>
-            <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom>
-              Revenue by region
-            </Typography>
-            <Box sx={{ width: "100%", height: 320 }}>
-              <RegionPieChart data={displayRegionWise} />
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
+          </Box>
+        </CardContent>
+      </Card>
 
-      {/* KPI cards */}
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 3,
-          mb: 6,
-          width: "100%",
-          alignItems: "stretch",
-          minHeight: 320,
-          "& > *": {
-            flex: "1 1 200px",
-            minWidth: 0,
-            maxWidth: { xs: "100%", sm: "none" },
-            display: "flex",
-            minHeight: 320,
-          },
-        }}
-      >
-        <SalesGrowthCard value={salesGrowthPct} subtitle={salesGrowthSubtitle} data={miniLineData(displayTrends)} />
-        <WinRateCard value={winRatePct} subtitle={winRateSubtitle} />
-        <RevenueGrowthCard value={revenueGrowthPct} subtitle={revenueGrowthSubtitle} data={miniLineData(displayTrends)} />
-        <QuarterlySalesCard
-          total={quarterlyTotal}
-          current={quarterlyCurrent}
-          pct={quarterlyPct}
-          targetLabel={quarterlyTargetLabel}
-          legendPrimary="Top region"
-          legendSecondary="Other regions"
-        />
-      </Box>
-
-      {/* category, overview, region — one row, equal width */}
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          flexDirection: { xs: "column", md: "row" },
-          gap: 3,
-          width: "100%",
-          alignItems: "stretch",
-          "& > *": { minWidth: 0, flex: { md: "1 1 0px" }, minHeight: 420 },
-        }}
-      >
-        <Card
-          sx={{
-            bgcolor: "background.paper",
-            border: "1px solid",
-            borderColor: "divider",
-            p: 3,
-            borderRadius: "2rem",
-            boxShadow: 1,
-            height: "100%",
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3, alignItems: "center" }}>
+        <TextField
+          placeholder="Search by product name"
+          size="small"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchOutlinedIcon fontSize="small" />
+              </InputAdornment>
+            ),
           }}
-        >
-          <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
-              <Box sx={{ width: 6, height: 24, bgcolor: "primary.main", borderRadius: "9999px" }} />
-              <Typography variant="subtitle2" fontWeight={500} color="text.secondary">
-                Revenue by category
-              </Typography>
-            </Box>
-            <Box sx={{ width: "100%", height: 256, minHeight: 256 }}>
-              <CategoryBarChart data={displayCategoryWise} height={256} />
-            </Box>
-          </CardContent>
-        </Card>
-        <AnalyticsSalesOverviewCard
-          value={new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(totalRevenue)}
-          data={displayRegionWise}
+          sx={{ minWidth: 220, borderRadius: 2 }}
         />
-        <AnalyticsSalesByCountriesCard data={displayRegionWise} />
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel>Category</InputLabel>
+          <Select
+            value={category}
+            label="Category"
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            <MenuItem value="">All</MenuItem>
+            {(filters.categories || []).map((c) => (
+              <MenuItem key={c} value={c}>{c}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel>Rating</InputLabel>
+          <Select
+            value={ratingFilter}
+            label="Rating"
+            onChange={(e) => setRatingFilter(e.target.value)}
+          >
+            <MenuItem value="">All</MenuItem>
+            {(filters.ratings || []).map((r) => (
+              <MenuItem key={r} value={String(r)}>{r}+</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </Box>
+
+      {isLoading && !list.data.length ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+          <CircularProgress />
+        </Box>
+      ) : hasNoData ? (
+        <Card sx={{ borderRadius: "2rem", bgcolor: "action.hover", border: "1px dashed", borderColor: "divider", p: 3, mb: 3 }}>
+          <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 2 }}>
+            No ratings data yet. Upload a CSV or Excel file (e.g. Dataset.xlsx with product_id, product_name, category, rating, rating_count, discount_percentage) to see charts and table.
+          </Typography>
+          <Button
+            component={Link}
+            href="/sales"
+            variant="contained"
+            endIcon={<ChevronRightIcon />}
+            sx={{ borderRadius: "9999px", textTransform: "none", fontWeight: 600 }}
+          >
+            Go to Sales Analytics
+          </Button>
+        </Card>
+      ) : (
+        <>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3, mb: 4 }}>
+            <Card sx={{ borderRadius: "2rem", bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
+              <CardContent>
+                <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom>
+                  Products per category
+                </Typography>
+                <Box sx={{ width: "100%", height: 280 }}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={productsPerCategory} margin={{ top: 8, right: 8, left: 0, bottom: 60 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="category" tick={{ fontSize: 11 }} angle={-25} textAnchor="end" height={60} interval={0} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} name="Products" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ borderRadius: "2rem", bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
+              <CardContent>
+                <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom>
+                  Top reviewed products
+                </Typography>
+                <Box sx={{ width: "100%", height: 280 }}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={topReviewed.slice(0, 15)} margin={{ top: 8, right: 8, left: 0, bottom: 80 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-35} textAnchor="end" height={80} interval={0} tickFormatter={(v) => (v && v.length > 25 ? v.slice(0, 24) + "…" : v)} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip formatter={(v) => [v, "Reviews"]} labelFormatter={(v) => (v && v.length > 40 ? v.slice(0, 39) + "…" : v)} />
+                      <Bar dataKey="review_count" fill={CHART_COLORS[1]} radius={[4, 4, 0, 0]} name="Reviews" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ borderRadius: "2rem", bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
+              <CardContent>
+                <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom>
+                  Discount distribution
+                </Typography>
+                <Box sx={{ width: "100%", height: 280 }}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={discountDistribution} margin={{ top: 8, right: 8, left: 0, bottom: 24 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip formatter={(v) => [v, "Count"]} />
+                      <Bar dataKey="count" fill={CHART_COLORS[2]} radius={[4, 4, 0, 0]} name="Count">
+                        {(discountDistribution || []).map((_, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ borderRadius: "2rem", bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
+              <CardContent>
+                <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom>
+                  Category-wise average rating
+                </Typography>
+                <Box sx={{ width: "100%", height: 280 }}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={categoryAvgRating} margin={{ top: 8, right: 8, left: 0, bottom: 60 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="category" tick={{ fontSize: 11 }} angle={-25} textAnchor="end" height={60} interval={0} />
+                      <YAxis tick={{ fontSize: 12 }} domain={[0, 5]} />
+                      <Tooltip formatter={(v) => [v, "Avg rating"]} />
+                      <Bar dataKey="avg_rating" fill={CHART_COLORS[3]} radius={[4, 4, 0, 0]} name="Avg rating" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+
+          <Card sx={{ borderRadius: "2rem", bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
+            <CardContent>
+              <Typography variant="subtitle2" fontWeight={600} color="text.secondary" gutterBottom sx={{ mb: 2 }}>
+                Product list
+              </Typography>
+              {loading.list ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                  <CircularProgress size={32} />
+                </Box>
+              ) : (
+                <>
+                  <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+                    <Table size="small" stickyHeader>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 600 }}>Product</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Rating</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Reviews</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>Discount %</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Review preview</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {list.data.map((row) => (
+                          <TableRow key={row.id} hover>
+                            <TableCell sx={{ maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis" }} title={row.product_name}>
+                              {row.product_name || "—"}
+                            </TableCell>
+                            <TableCell>{row.category || "—"}</TableCell>
+                            <TableCell align="right">{row.rating != null ? Number(row.rating).toFixed(1) : "—"}</TableCell>
+                            <TableCell align="right">{row.rating_count != null ? row.rating_count.toLocaleString() : "—"}</TableCell>
+                            <TableCell align="right">{row.discount_percentage != null ? (Number(row.discount_percentage) <= 1 ? (row.discount_percentage * 100).toFixed(1) : Number(row.discount_percentage).toFixed(1)) : "—"}%</TableCell>
+                            <TableCell sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }} title={row.review_preview}>
+                              {row.review_preview || "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <TablePagination
+                      component="div"
+                      count={list.total}
+                      page={page}
+                      onPageChange={handleChangePage}
+                      rowsPerPage={rowsPerPage}
+                      onRowsPerPageChange={handleChangeRowsPerPage}
+                      rowsPerPageOptions={[5, 10, 25, 50]}
+                      labelRowsPerPage="Rows per page:"
+                      showFirstButton
+                      showLastButton
+                    />
+                  </TableContainer>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Box sx={{ mt: 3, textAlign: "center" }}>
+            <Button
+              component={Link}
+              href="/sales"
+              variant="outlined"
+              endIcon={<ChevronRightIcon />}
+              sx={{ borderRadius: "9999px", textTransform: "none" }}
+            >
+              Go to Sales Analytics
+            </Button>
+          </Box>
+        </>
+      )}
     </Box>
   );
 }

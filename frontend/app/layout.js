@@ -8,8 +8,8 @@ import Footer from "@/components/Footer";
 import GlobalSnackbar from "@/components/Shared/GlobalSnackbar";
 
 export const metadata = {
-  title: "Sales & Revenue Analytics",
-  description: "Analytics dashboard",
+  title: "Analytics Dashboard",
+  description: "Product Ratings & Reviews and Sales & Revenue Analytics",
 };
 
 export default function RootLayout({ children }) {
@@ -25,7 +25,7 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className="m-0 min-h-screen w-full overflow-x-hidden bg-[var(--background)] text-[var(--foreground)]">
+      <body className="m-0 min-h-screen w-full overflow-x-hidden bg-[var(--background)] text-[var(--foreground)]" suppressHydrationWarning>
         <Providers>
           <MobileSidebarProvider>
             <div className="flex flex-row w-full min-h-screen flex-1" suppressHydrationWarning>
