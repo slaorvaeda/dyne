@@ -23,12 +23,11 @@ import { useThemeMode } from "@/context/ThemeModeContext";
 import { useMobileSidebar } from "@/context/MobileSidebarContext";
 
 const routeTitles = {
-  "/": "Dashboard",
-  "/trends": "Trends",
-  "/products": "Products",
-  "/regions": "Regions",
-  "/transactions": "Transactions",
-  "/customers": "Customers",
+  "/": "Ratings & Reviews",
+  "/sales": "Sales Dashboard",
+  "/sales/trends": "Trends",
+  "/sales/products": "Products",
+  "/sales/regions": "Regions",
   "/notifications": "Notifications",
   "/help": "Help Center",
   "/settings": "Settings",
@@ -39,7 +38,7 @@ function getPageTitle(pathname) {
   if (routeTitles[pathname]) return routeTitles[pathname];
   if (pathname.startsWith("/")) {
     const segment = pathname.slice(1).split("/")[0];
-    return segment ? segment.charAt(0).toUpperCase() + segment.slice(1) : "Dashboard";
+    return segment ? segment.charAt(0).toUpperCase() + segment.slice(1) : "Ratings & Reviews";
   }
   return "Dashboard";
 }

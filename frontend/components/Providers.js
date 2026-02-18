@@ -14,11 +14,13 @@ function ThemeWrapper({ children }) {
   const theme = getTheme(mode);
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <ThemeSync />
-        {children}
-      </LocalizationProvider>
+      <div suppressHydrationWarning style={{ display: "contents" }}>
+        <CssBaseline />
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <ThemeSync />
+          {children}
+        </LocalizationProvider>
+      </div>
     </ThemeProvider>
   );
 }

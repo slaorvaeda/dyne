@@ -104,7 +104,7 @@ export default function AnalyticsSalesOverviewCard({ value = "₹0", data = [] }
           </Typography>
           <Button
             component={Link}
-            href="/regions"
+            href="/sales/regions"
             variant="contained"
             endIcon={<ChevronRightIcon />}
             sx={{

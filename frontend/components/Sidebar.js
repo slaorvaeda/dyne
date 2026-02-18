@@ -30,14 +30,16 @@ import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import PublicIcon from "@mui/icons-material/Public";
+import StarOutlinedIcon from "@mui/icons-material/StarOutlined";
 
 const STORAGE_KEY = "sidebarExpanded";
 
 const navItems = [
-  { label: "Dashboard", href: "/", icon: DashboardOutlinedIcon },
-  { label: "Trends", href: "/trends", icon: TrendingUpIcon },
-  { label: "Products", href: "/products", icon: ShoppingBagOutlinedIcon },
-  { label: "Regions", href: "/regions", icon: PublicIcon },
+  { label: "Ratings & Reviews", href: "/", icon: StarOutlinedIcon },
+  { label: "Sales Dashboard", href: "/sales", icon: DashboardOutlinedIcon },
+  { label: "Trends", href: "/sales/trends", icon: TrendingUpIcon },
+  { label: "Products", href: "/sales/products", icon: ShoppingBagOutlinedIcon },
+  { label: "Regions", href: "/sales/regions", icon: PublicIcon },
   { label: "Notifications", href: "/notifications", icon: NotificationsOutlinedIcon },
   { label: "Help Center", href: "/help", icon: HelpOutlineIcon },
   { label: "Settings", href: "/settings", icon: SettingsOutlinedIcon },
@@ -208,7 +210,7 @@ export default function Sidebar({ inDrawer = false, onClose }) {
 
       <List sx={{ flex: 1, overflow: "auto", py: 2, px: showFull ? 1.5 : 0.75 }} disablePadding>
         {navItems.map(({ label, href, icon: Icon }) => {
-          const active = pathname === href || (href === "/" && pathname === "/");
+          const active = pathname === href || (href === "/" && pathname === "/") || (href !== "/" && pathname.startsWith(href));
           return (
             <ListItem key={href} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
