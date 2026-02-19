@@ -1,8 +1,3 @@
-/**
- * One-off seed: reads Dataset.xlsx (Amazon product/review format),
- * maps it to the sales table with synthetic order dates and price/total from discounted_price.
- * Run from backend: node scripts/seed-dataset.js
- */
 require("dotenv").config({ path: require("path").join(__dirname, "..", ".env") });
 const XLSX = require("xlsx");
 const { query } = require("../src/config/db");

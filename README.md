@@ -78,13 +78,12 @@ Open **http://localhost:3000** in the browser.
 
 ### 5. Load sample data (optional)
 
-Place `Dataset.xlsx` in the project root, then from `backend`:
+Place `Dataset.xlsx` in the project root.
 
-```bash
-node scripts/seed-dataset.js
-```
+- **Sales** (`/sales`): from `backend` run `node scripts/seed-dataset.js`, or use Sales dashboard Upload.
+- **Ratings & Reviews** (home `/`): from `backend` run `node scripts/seed-ratings.js`, or use the home page Upload with the same Excel (needs product_name, category, rating, rating_count).
 
-Or use the dashboard **Upload CSV/Excel** with “Replace existing data” checked and upload the same file from the UI.
+Alternatively use the dashboard Upload with “Replace existing data” checked and upload the same file from the UI.
 
 ---
 

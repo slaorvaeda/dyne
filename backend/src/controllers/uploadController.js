@@ -198,4 +198,123 @@ async function uploadSales(req, res) {
   }
 }
 
-module.exports = { uploadSales };
+function mapRowRatings(raw) {
+  const get = (key) => {
+    const v = raw[key];
+    if (v === undefined || v === null || v === "") return null;
+    if (typeof v === "object" && v instanceof Date) return v.toISOString().slice(0, 10);
+    return String(v).trim();
+  };
+  const getNum = (key) => {
+    const v = raw[key];
+    if (v === undefined || v === null || v === "") return null;
+    const n = parseFloat(String(v).replace(/[^0-9.-]/g, ""));
+    return isNaN(n) ? null : n;
+  };
+  const getInt = (key) => {
+    const n = getNum(key);
+    return n === null ? null : Math.floor(n);
+  };
+  const productName = get("product_name");
+  if (!productName) return null;
+  let category = get("category");
+  if (category && category.includes("|")) category = category.split("|")[0].trim() || category;
+  return {
+    product_id: (get("product_id") || "").slice(0, 100),
+    product_name: productName.slice(0, 500),
+    category: category ? category.slice(0, 200) : null,
+    discounted_price: getNum("discounted_price"),
+    actual_price: getNum("actual_price"),
+    discount_percentage: getNum("discount_percentage"),
+    rating: getNum("rating"),
+    rating_count: getInt("rating_count"),
+    about_product: (get("about_product") || "").slice(0, 5000),
+    user_name: (get("user_name") || "").slice(0, 500),
+    review_title: (get("review_title") || "").slice(0, 1000),
+    review_content: (get("review_content") || "").slice(0, 5000),
+  };
+}
+
+function isRatingsFormat(headers) {
+  const lower = headers.map((h) => String(h).toLowerCase().replace(/\s+/g, "_"));
+  return (
+    (lower.includes("product_id") || lower.includes("product_name")) &&
+    (lower.includes("rating") || lower.includes("rating_count")) &&
+    (lower.includes("category") || lower.includes("categories"))
+  );
+}
+
+function normalizeHeaders(rawRow) {
+  const out = {};
+  for (const [k, v] of Object.entries(rawRow || {})) {
+    const key = String(k).toLowerCase().trim().replace(/\s+/g, "_");
+    out[key] = v;
+  }
+  return out;
+}
+
+async function uploadRatings(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+    const ext = (req.file.originalname || "").toLowerCase().replace(/.*\./, "");
+    if (!["csv", "xlsx", "xls"].includes(ext)) {
+      return res.status(400).json({ error: "Only CSV, XLSX, and XLS files are allowed" });
+    }
+    const rawRows = parseFile(req.file.buffer, ext);
+    if (rawRows.length === 0) {
+      return res.status(400).json({ error: "File is empty or has no data rows" });
+    }
+    const headers = Object.keys(rawRows[0] || {});
+    if (!isRatingsFormat(headers)) {
+      return res.status(400).json({
+        error: "File must contain product_name (or product_id), category, and rating (or rating_count). Columns: " + headers.join(", "),
+      });
+    }
+
+    const rows = [];
+    for (const raw of rawRows) {
+      const normalized = normalizeHeaders(raw);
+      const row = mapRowRatings(normalized);
+      if (row) rows.push(row);
+    }
+    if (rows.length === 0) {
+      return res.status(400).json({ error: "No valid rows found. Need product_name and at least category." });
+    }
+
+    const replace = req.body && (req.body.replace === "true" || req.body.replace === true);
+    if (replace) {
+      await query("TRUNCATE TABLE product_reviews RESTART IDENTITY");
+    }
+
+    let inserted = 0;
+    for (const row of rows) {
+      await query(
+        `INSERT INTO product_reviews (product_id, product_name, category, discounted_price, actual_price, discount_percentage, rating, rating_count, about_product, user_name, review_title, review_content)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [
+          row.product_id || null,
+          row.product_name,
+          row.category,
+          row.discounted_price,
+          row.actual_price,
+          row.discount_percentage,
+          row.rating,
+          row.rating_count,
+          row.about_product || null,
+          row.user_name || null,
+          row.review_title || null,
+          row.review_content || null,
+        ]
+      );
+      inserted++;
+    }
+    return res.json({ recordsInserted: inserted, replaced: replace });
+  } catch (err) {
+    console.error("uploadRatings error:", err);
+    return res.status(500).json({ error: err.message || "Upload failed" });
+  }
+}
+
+module.exports = { uploadSales, uploadRatings };
